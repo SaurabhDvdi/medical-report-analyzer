@@ -49,6 +49,22 @@ def ensure_schema_compatibility() -> None:
                 "ALTER TABLE doctor_notes ADD COLUMN note_type TEXT DEFAULT 'consultation'"
             )
             conn.commit()
+
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ("users",),
+        )
+        if cur.fetchone() is None:
+            return
+
+        cur.execute("PRAGMA table_info(users)")
+        user_cols = {row[1] for row in cur.fetchall()}
+        if "doctor_category_id" not in user_cols:
+            cur.execute("ALTER TABLE users ADD COLUMN doctor_category_id INTEGER")
+            conn.commit()
+        if "doctor_specialty_id" not in user_cols:
+            cur.execute("ALTER TABLE users ADD COLUMN doctor_specialty_id INTEGER")
+            conn.commit()
     finally:
         conn.close()
 

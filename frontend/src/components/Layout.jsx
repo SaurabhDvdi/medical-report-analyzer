@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { FileText, Home, Pill, User, LogOut, Stethoscope } from 'lucide-react'
+import { FileText, Home, Pill, User, LogOut, Stethoscope, Search } from 'lucide-react'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -16,11 +16,13 @@ export default function Layout() {
     ? [
         { path: '/dashboard', label: 'Dashboard', icon: Home },
         { path: '/doctor/patients', label: 'Patients', icon: User },
-        { path: '/doctor/profile', label: 'Profile', icon: Stethoscope },
         { path: '/reports', label: 'Reports', icon: FileText },
+        { path: '/medicines', label: 'Medicines', icon: Pill },
+        { path: '/doctor/profile', label: 'Profile', icon: Stethoscope },
       ]
     : [
         { path: '/dashboard', label: 'Dashboard', icon: Home },
+        { path: '/find-doctors', label: 'Find Doctors', icon: Search },
         { path: '/reports', label: 'Reports', icon: FileText },
         { path: '/medicines', label: 'Medicines', icon: Pill },
         { path: '/profile', label: 'Profile', icon: User },

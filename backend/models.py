@@ -1,7 +1,60 @@
-from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Date
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey, Text, Date, UniqueConstraint, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from database import Base
+
+
+class DoctorCategory(Base):
+    """Clinical specialty category for doctor discovery (not report OCR categories)."""
+
+    __tablename__ = "doctor_categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+
+    specialties = relationship("DoctorSpecialty", back_populates="category", cascade="all, delete-orphan")
+    doctors = relationship("User", back_populates="doctor_category")
+
+
+class DoctorSpecialty(Base):
+    __tablename__ = "doctor_specialties"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    category_id = Column(Integer, ForeignKey("doctor_categories.id"), nullable=False, index=True)
+
+    category = relationship("DoctorCategory", back_populates="specialties")
+    doctors = relationship("User", back_populates="doctor_specialty")
+
+    __table_args__ = (
+        UniqueConstraint("category_id", "name", name="uq_doctor_specialty_name_per_category"),
+        Index("ix_doctor_specialties_category_name", "category_id", "name"),
+    )
+
+
+class PatientDoctorAccess(Base):
+    """Patient requests access to a doctor; active care requires accepted status."""
+
+    __tablename__ = "patient_doctor_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    patient_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    status = Column(String, nullable=False, index=True, default="pending")  # pending, accepted, rejected
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    patient = relationship("User", foreign_keys=[patient_id], back_populates="doctor_access_as_patient")
+    doctor = relationship("User", foreign_keys=[doctor_id], back_populates="doctor_access_as_doctor")
+
+    __table_args__ = (
+        UniqueConstraint("patient_id", "doctor_id", name="uq_patient_doctor_access_pair"),
+        Index("ix_pda_doctor_status", "doctor_id", "status"),
+        Index("ix_pda_patient_status", "patient_id", "status"),
+    )
+
 
 class User(Base):
     __tablename__ = "users"
@@ -12,6 +65,8 @@ class User(Base):
     full_name = Column(String)
     role = Column(String)  # "patient" or "doctor"
     created_at = Column(DateTime, default=datetime.utcnow)
+    doctor_category_id = Column(Integer, ForeignKey("doctor_categories.id"), nullable=True, index=True)
+    doctor_specialty_id = Column(Integer, ForeignKey("doctor_specialties.id"), nullable=True, index=True)
     
     reports = relationship("Report", back_populates="user")
     medicines = relationship("Medicine", back_populates="user")
@@ -19,6 +74,14 @@ class User(Base):
     patient_notes = relationship("DoctorNote", foreign_keys="DoctorNote.patient_id", back_populates="patient")
     doctor_profile = relationship("DoctorProfile", back_populates="user", uselist=False)
     patient_profile = relationship("PatientProfile", back_populates="user", uselist=False)
+    doctor_category = relationship("DoctorCategory", back_populates="doctors", foreign_keys=[doctor_category_id])
+    doctor_specialty = relationship("DoctorSpecialty", back_populates="doctors", foreign_keys=[doctor_specialty_id])
+    doctor_access_as_patient = relationship(
+        "PatientDoctorAccess", foreign_keys="PatientDoctorAccess.patient_id", back_populates="patient"
+    )
+    doctor_access_as_doctor = relationship(
+        "PatientDoctorAccess", foreign_keys="PatientDoctorAccess.doctor_id", back_populates="doctor"
+    )
 
 class ReportCategory(Base):
     __tablename__ = "report_categories"

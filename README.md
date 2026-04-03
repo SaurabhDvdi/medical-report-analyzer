@@ -25,11 +25,14 @@ A comprehensive full-stack application for uploading, analyzing, and visualizing
 - **File Storage**: Local file system for uploaded reports
 
 ### Frontend (React)
-- **Framework**: React with Vite
+- **Framework**: React with Vite (dev server port 3000)
 - **Styling**: Tailwind CSS
 - **UI Components**: Custom components with shadcn/ui patterns
 - **State Management**: React Context API
-- **HTTP Client**: Axios
+- **HTTP Client**: Axios (`src/utils/api.js`)
+  - `baseURL`: `http://localhost:8000`
+  - Request interceptor: `Authorization: Bearer <token>` from `localStorage` on every request; `FormData` uploads do not force `application/json` so multipart boundaries are correct
+  - Response interceptor: HTTP **401** clears stored credentials and sends the browser to `/login`
 
 ## Installation
 
@@ -136,8 +139,9 @@ The frontend will be available at `http://localhost:3000`
 2. **Upload Reports**: Drag and drop medical report files (PDF, PNG, JPG)
 3. **View Analysis**: Reports are automatically processed with OCR and AI summarization
 4. **Track Medicines**: Add and manage current and past medications
-5. **View Analytics**: Access trend charts, comparisons, and health summaries
-6. **Doctor Portal**: Doctors can view all patients, add notes, and analyze reports
+5. **View Analytics**: Access trend charts, multi-parameter comparisons, health summaries, and correlation heatmaps (PNG charts from the API)
+6. **Export data**: Download lab values as CSV from the Reports or Report Viewer pages
+7. **Doctor Portal**: Doctors can view all patients, add notes, and analyze reports (patient list uses `/api/users/patients` only for doctor accounts)
 
 ## Database Schema
 
@@ -160,6 +164,16 @@ The frontend will be available at `http://localhost:3000`
 - `GET /api/reports/{id}` - Get report details
 - `DELETE /api/reports/{id}` - Delete report
 - `GET /api/reports/{id}/download` - Download report file
+- `GET /api/report-categories` - Report type categories (OCR)
+
+### Doctor discovery & clinical taxonomy
+- `GET /api/categories` - Doctor clinical categories
+- `GET /api/specialties?category_id=` - Specialties (optional filter)
+- `POST /api/specialties` - Create specialty (doctor only; used from profile tools)
+- `GET /api/doctors` - Search/filter doctors (`name`, `category_id`, `specialty_id` query params)
+- `GET /api/patient/discovery-stats`, `GET /api/doctor/assignment-stats` - Dashboard counts
+- `POST /api/patient/doctor-access`, `GET /api/patient/doctor-access` - Patient access requests
+- `GET /api/doctor/patient-access-requests`, `POST .../accept`, `POST .../reject` - Doctor workflow
 
 ### Lab Values
 - `GET /api/lab-values` - Get lab values with filters
@@ -193,8 +207,8 @@ The frontend will be available at `http://localhost:3000`
 
 ## Security Considerations
 
-- In production, implement proper password hashing (currently using plain text for development)
-- Change the JWT secret key in `backend/auth.py`
+- Passwords are hashed with bcrypt on the backend; never log or expose raw passwords
+- Change the JWT secret key in `backend/auth.py` for production
 - Implement rate limiting for API endpoints
 - Add input validation and sanitization
 - Use environment variables for sensitive configuration

@@ -10,9 +10,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const token = localStorage.getItem('token')
     if (token) {
-      // Verify token and get user info
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-      // In a real app, you'd verify the token with the backend
       setUser(JSON.parse(localStorage.getItem('user') || 'null'))
     }
     setLoading(false)
@@ -24,7 +21,6 @@ export function AuthProvider({ children }) {
       const { access_token, user: userData } = response.data
       localStorage.setItem('token', access_token)
       localStorage.setItem('user', JSON.stringify(userData))
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       setUser(userData)
       return { success: true }
     } catch (error) {
@@ -32,18 +28,21 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const register = async (email, password, fullName, role) => {
+  const register = async (email, password, fullName, role, doctorPayload = null) => {
     try {
-      const response = await api.post('/api/auth/register', {
+      const body = {
         email,
         password,
         full_name: fullName,
-        role
-      })
+        role,
+      }
+      if (role === 'doctor' && doctorPayload) {
+        Object.assign(body, doctorPayload)
+      }
+      const response = await api.post('/api/auth/register', body)
       const { access_token, user: userData } = response.data
       localStorage.setItem('token', access_token)
       localStorage.setItem('user', JSON.stringify(userData))
-      api.defaults.headers.common['Authorization'] = `Bearer ${access_token}`
       setUser(userData)
       return { success: true }
     } catch (error) {
@@ -54,7 +53,6 @@ export function AuthProvider({ children }) {
   const logout = () => {
     localStorage.removeItem('token')
     localStorage.removeItem('user')
-    delete api.defaults.headers.common['Authorization']
     setUser(null)
   }
 

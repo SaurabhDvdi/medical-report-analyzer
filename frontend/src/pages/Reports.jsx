@@ -1,29 +1,97 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Link } from 'react-router-dom'
 import api from '../utils/api'
-import { Upload, FileText, Trash2, Download, Loader } from 'lucide-react'
+import { Upload, FileText, Trash2, Download, Loader, FileDown } from 'lucide-react'
+
+export async function downloadLabValuesCsv() {
+  const response = await api.get('/api/export/csv', { responseType: 'blob' })
+  const blob =
+    response.data instanceof Blob ? response.data : new Blob([response.data], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = 'lab_values.csv'
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
 
 export default function Reports() {
   const [reports, setReports] = useState([])
+  const [categories, setCategories] = useState([])
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [categoriesLoading, setCategoriesLoading] = useState(true)
   const [loading, setLoading] = useState(true)
+  const [listError, setListError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [exporting, setExporting] = useState(false)
+  const pollingRef = useRef(null)
 
-  useEffect(() => {
-    fetchReports()
-  }, [])
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
       const response = await api.get('/api/reports')
       setReports(response.data)
-      setLoading(false)
+      setListError('')
     } catch (error) {
       console.error('Error fetching reports:', error)
-      setLoading(false)
+      setListError(
+        error.response?.data?.detail || error.message || 'Failed to load reports.'
+      )
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      setLoading(true)
+      await fetchReports()
+      if (!cancelled) setLoading(false)
+    }
+    load()
+    return () => {
+      cancelled = true
+    }
+  }, [fetchReports])
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await api.get('/api/report-categories')
+        setCategories(res.data)
+      } catch (e) {
+        console.error('Error loading categories:', e)
+      } finally {
+        setCategoriesLoading(false)
+      }
+    }
+    loadCategories()
+  }, [])
+
+  useEffect(() => {
+    const needsPoll = reports.some(
+      (r) => r.ocr_status === 'pending' || r.ocr_status === 'processing'
+    )
+    if (!needsPoll) {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+      return
+    }
+    if (pollingRef.current) return
+    pollingRef.current = setInterval(() => {
+      fetchReports()
+    }, 3000)
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current)
+        pollingRef.current = null
+      }
+    }
+  }, [reports, fetchReports])
 
   const onDrop = useCallback(async (acceptedFiles) => {
     if (acceptedFiles.length === 0) return
@@ -36,37 +104,33 @@ export default function Reports() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await api.post('/api/reports/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+      await api.post('/api/reports/upload', formData, {
         onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round(
-            (progressEvent.loaded * 100) / progressEvent.total
-          )
+          const total = progressEvent.total || 1
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / total)
           setUploadProgress(percentCompleted)
         },
       })
 
-      // Refresh reports list
       await fetchReports()
-      setUploading(false)
-      setUploadProgress(0)
     } catch (error) {
       console.error('Error uploading file:', error)
+      alert(
+        error.response?.data?.detail || 'Error uploading file. Please try again.'
+      )
+    } finally {
       setUploading(false)
       setUploadProgress(0)
-      alert('Error uploading file. Please try again.')
     }
-  }, [])
+  }, [fetchReports])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg'],
-      'application/pdf': ['.pdf']
+      'application/pdf': ['.pdf'],
     },
-    maxFiles: 1
+    maxFiles: 1,
   })
 
   const handleDelete = async (reportId) => {
@@ -76,30 +140,57 @@ export default function Reports() {
 
     try {
       await api.delete(`/api/reports/${reportId}`)
-      setReports(reports.filter(r => r.id !== reportId))
+      setReports((prev) => prev.filter((r) => r.id !== reportId))
     } catch (error) {
       console.error('Error deleting report:', error)
-      alert('Error deleting report. Please try again.')
+      alert(
+        error.response?.data?.detail || 'Error deleting report. Please try again.'
+      )
     }
   }
 
   const handleDownload = async (reportId, fileName) => {
     try {
       const response = await api.get(`/api/reports/${reportId}/download`, {
-        responseType: 'blob'
+        responseType: 'blob',
       })
-      const url = window.URL.createObjectURL(new Blob([response.data]))
+      const blob =
+        response.data instanceof Blob
+          ? response.data
+          : new Blob([response.data])
+      const url = URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
       link.setAttribute('download', fileName)
       document.body.appendChild(link)
       link.click()
       link.remove()
+      URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Error downloading report:', error)
-      alert('Error downloading report. Please try again.')
+      alert(
+        error.response?.data?.detail || 'Error downloading report. Please try again.'
+      )
     }
   }
+
+  const handleExportCsv = async () => {
+    setExporting(true)
+    try {
+      await downloadLabValuesCsv()
+    } catch (error) {
+      console.error('CSV export failed:', error)
+      alert(
+        error.response?.data?.detail || 'Could not export CSV. Please try again.'
+      )
+    } finally {
+      setExporting(false)
+    }
+  }
+
+  const filteredReports = categoryFilter
+    ? reports.filter((r) => (r.category || '') === categoryFilter)
+    : reports
 
   if (loading) {
     return <div className="text-center py-12">Loading reports...</div>
@@ -107,9 +198,46 @@ export default function Reports() {
 
   return (
     <div className="px-4 py-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Reports</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <span>Category</span>
+            <select
+              className="border border-gray-300 rounded-md px-3 py-2 bg-white"
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              disabled={categoriesLoading}
+            >
+              <option value="">All categories</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.name}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <button
+            type="button"
+            onClick={handleExportCsv}
+            disabled={exporting}
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50"
+          >
+            {exporting ? (
+              <Loader className="w-4 h-4 mr-2 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4 mr-2" />
+            )}
+            Export CSV
+          </button>
+        </div>
       </div>
+
+      {listError && (
+        <div className="mb-4 rounded-md bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
+          {listError}
+        </div>
+      )}
 
       {/* Upload Area */}
       <div
@@ -132,27 +260,36 @@ export default function Reports() {
             <p className="text-lg font-medium text-gray-700 mb-2">
               {isDragActive ? 'Drop the file here' : 'Drag & drop a report file here'}
             </p>
-            <p className="text-sm text-gray-500">
-              or click to select (PDF, PNG, JPG)
-            </p>
+            <p className="text-sm text-gray-500">or click to select (PDF, PNG, JPG)</p>
           </div>
         )}
       </div>
 
       {/* Reports List */}
       <div className="mt-8 bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-gray-900">All Reports</h2>
+          {categoryFilter ? (
+            <span className="text-sm text-gray-500">
+              Showing {filteredReports.length} of {reports.length}
+            </span>
+          ) : null}
         </div>
         <div className="divide-y divide-gray-200">
-          {reports.length === 0 ? (
+          {filteredReports.length === 0 ? (
             <div className="px-6 py-12 text-center text-gray-500">
               <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-              <p>No reports uploaded yet.</p>
-              <p className="text-sm mt-2">Upload your first medical report above.</p>
+              <p>
+                {reports.length === 0
+                  ? 'No reports uploaded yet.'
+                  : 'No reports match this category.'}
+              </p>
+              {reports.length === 0 && (
+                <p className="text-sm mt-2">Upload your first medical report above.</p>
+              )}
             </div>
           ) : (
-            reports.map((report) => (
+            filteredReports.map((report) => (
               <div
                 key={report.id}
                 className="px-6 py-4 hover:bg-gray-50 transition-colors"
@@ -166,7 +303,8 @@ export default function Reports() {
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{report.file_name}</p>
                       <p className="text-sm text-gray-500">
-                        {new Date(report.upload_date).toLocaleDateString()} • {report.category || 'Uncategorized'}
+                        {new Date(report.upload_date).toLocaleDateString()} •{' '}
+                        {report.category || 'Uncategorized'}
                       </p>
                       {report.ai_summary && (
                         <p className="text-sm text-gray-600 mt-1 line-clamp-2">
@@ -176,18 +314,21 @@ export default function Reports() {
                     </div>
                   </Link>
                   <div className="flex items-center space-x-2">
-                    <span className={`px-2 py-1 text-xs rounded ${
-                      report.ocr_status === 'completed' 
-                        ? 'bg-green-100 text-green-800' 
-                        : report.ocr_status === 'processing'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : report.ocr_status === 'failed'
-                        ? 'bg-red-100 text-red-800'
-                        : 'bg-gray-100 text-gray-800'
-                    }`}>
+                    <span
+                      className={`px-2 py-1 text-xs rounded ${
+                        report.ocr_status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : report.ocr_status === 'processing' || report.ocr_status === 'pending'
+                          ? 'bg-yellow-100 text-yellow-800'
+                          : report.ocr_status === 'failed'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
                       {report.ocr_status}
                     </span>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.preventDefault()
                         handleDownload(report.id, report.file_name)
@@ -198,6 +339,7 @@ export default function Reports() {
                       <Download className="w-5 h-5" />
                     </button>
                     <button
+                      type="button"
                       onClick={(e) => {
                         e.preventDefault()
                         handleDelete(report.id)
@@ -217,4 +359,3 @@ export default function Reports() {
     </div>
   )
 }
-

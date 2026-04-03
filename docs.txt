@@ -134,7 +134,17 @@ Export:
 - GET /api/export/csv - Export lab values as CSV
 
 Other:
-- GET /api/categories - Get all report categories
+- GET /api/report-categories - Report OCR / type categories (legacy path was /api/categories)
+- GET /api/categories - Doctor clinical categories (discovery & registration)
+- GET /api/specialties?category_id= - Specialties for a doctor category
+- POST /api/specialties - Doctors create an additional specialty under a category
+- GET /api/doctors?name=&category_id=&specialty_id= - Doctor discovery (auth required)
+- GET /api/patient/discovery-stats - Total doctors on platform + patient’s accepted doctor count
+- GET /api/doctor/assignment-stats - Total patients on platform + doctor’s assigned (accepted) count
+- POST /api/patient/doctor-access - Patient requests access to a doctor
+- GET /api/patient/doctor-access - Patient’s access rows
+- GET /api/doctor/patient-access-requests?status=pending - Doctor incoming requests
+- POST /api/doctor/patient-access-requests/{id}/accept | /reject
 - GET /api/users/patients - Get all patients (doctors only)
 
 FILE STORAGE
@@ -163,10 +173,11 @@ TECHNOLOGY STACK
 AUTHENTICATION
 -------------
 - AuthContext for global state management
-- JWT token stored in localStorage
-- Automatic token injection in API requests
+- JWT token stored in localStorage (key: token; user JSON key: user)
+- Axios request interceptor: reads token per request and sets Authorization Bearer
+- Axios response interceptor: on HTTP 401 clears token/user and redirects to /login
 - Protected routes with role-based access
-- Login/Register pages
+- Login/Register pages (POST /api/auth/login, /api/auth/register)
 
 PAGES
 -----
@@ -182,55 +193,43 @@ PAGES
    - Full name, email, password
    - Link to login
 
-3. Dashboard (pages/Dashboard.jsx)
-   - Statistics cards:
-     * Total Reports
-     * Abnormal Values Count
-     * Current Medicines
-   - Health Summary Chart (from backend)
-   - Recent Reports list with quick access
+3. Patient dashboard (pages/PatientDashboard.jsx) — route /dashboard for patients
+   - Statistics: active medicines, abnormal lab count (all reports), total reports, BMI card
+   - GET /api/patient/profile, /api/medicines, /api/reports, per-report GET /api/reports/{id}
+   - Health summary PNG: GET /api/analytics/health-summary (responseType blob, object URL)
+   - Correlation heatmap: GET /api/analytics/correlation (blob)
+   - Recent reports and quick links
 
-4. Reports (pages/Reports.jsx)
-   - Drag-and-drop file upload
+4. Doctor dashboard (pages/DoctorDashboard.jsx) — route /dashboard for doctors
+   - KPIs: GET /api/doctor/statistics, recent patients from GET /api/users/patients
+   - Health summary and correlation charts (same analytics endpoints, doctor scope on backend)
+
+5. Reports (pages/Reports.jsx)
+   - Drag-and-drop file upload (FormData POST /api/reports/upload; multipart)
    - Upload progress indicator
-   - Reports list with:
-     * File name, upload date
-     * OCR status badges
-     * AI summary preview
-     * Category display
-   - Download and delete actions
-   - Status indicators (pending/processing/completed/failed)
+   - OCR polling: refreshes list every 3s while any report is pending/processing
+   - Category filter: GET /api/categories
+   - Export CSV: GET /api/export/csv (blob download)
+   - Reports list: GET /api/reports; download GET /api/reports/{id}/download; delete removes from local state
+   - Status badges including failed
 
-5. Report Viewer (pages/ReportViewer.jsx)
-   - Full report details
-   - AI summary display
-   - Lab values table with:
-     * Parameter name, value, unit
-     * Reference range
-     * Abnormal status (highlighted in red)
-     * Trend chart button
-   - Trend chart display (on-demand)
+6. Report Viewer (pages/ReportViewer.jsx)
+   - GET /api/reports/{id}; download and export CSV as above
+   - Lab table: abnormal rows Tailwind bg-red-50 text-red-700
+   - Trend: GET /api/analytics/trend/{parameter_name} (blob on demand)
+   - Comparison: multi-select parameters then GET /api/analytics/comparison?parameter_names=...
+   - Lab history: GET /api/lab-values with optional parameter_name, start_date, end_date
    - Extracted text viewer
-   - Download original file
 
-6. Medicines (pages/Medicines.jsx)
-   - Add/Edit/Delete medicines
-   - Form modal with:
-     * Name, dosage, frequency
-     * Start date, end date
-     * Status (current/past)
-   - Separate sections for:
-     * Current medicines
-     * Past medicines
-   - Timeline display with dates
+7. Medicines (pages/Medicines.jsx) — patients and doctors (own user medicines per API)
+   - GET/POST /api/medicines; PUT/DELETE /api/medicines/{id}
+   - Single modal for add vs edit controlled by selectedMedicine (null = add)
+   - Sections: status current vs past from same GET response
 
-7. Doctor Interface (pages/DoctorInterface.jsx)
-   - Patient selector sidebar
-   - Patient reports list
-   - Rich text notes editor (React Quill)
-   - Notes display with formatting
-   - Report-specific notes
-   - Patient information display
+8. Doctor Interface (pages/DoctorInterface.jsx) — doctors only (renders null if role !== doctor)
+   - GET /api/users/patients (search query); GET /api/doctor/patient/{id}; GET /api/doctor-notes?patient_id=
+   - POST /api/doctor-notes body: patient_id, note_text (HTML from Quill), optional report_id; doctor_id sent for UI parity (ignored if extra)
+   - React Quill for new consultation notes or report-linked notes
 
 COMPONENTS
 ----------
@@ -254,9 +253,9 @@ UTILITIES
 ---------
 
 API Client (utils/api.js)
-- Axios instance with base URL
-- Automatic token injection
-- Error handling setup
+- Axios instance baseURL http://localhost:8000
+- Request interceptor: Authorization Bearer from localStorage; FormData uploads omit Content-Type so JavaScript sets multipart boundary
+- Response interceptor: 401 clears auth and redirects to login
 
 STYLING
 -------
@@ -354,7 +353,11 @@ medical-report-analyzer/
 │   │   ├── pages/
 │   │   │   ├── Login.jsx
 │   │   │   ├── Register.jsx
-│   │   │   ├── Dashboard.jsx
+│   │   │   ├── Dashboard.jsx        # re-exports PatientDashboard
+│   │   │   ├── PatientDashboard.jsx
+│   │   │   ├── DoctorDashboard.jsx
+│   │   │   ├── PatientProfile.jsx
+│   │   │   ├── DoctorProfile.jsx
 │   │   │   ├── Reports.jsx
 │   │   │   ├── ReportViewer.jsx
 │   │   │   ├── Medicines.jsx

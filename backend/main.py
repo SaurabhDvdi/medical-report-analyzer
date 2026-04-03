@@ -2,11 +2,14 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Backgroun
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from sqlalchemy import case
 import uvicorn
 from datetime import datetime
 import os
 import bcrypt
 import hashlib
+from services.simulation import simulate
+
 
 # Use bcrypt directly instead of passlib to avoid initialization issues
 def hash_password(password: str) -> str:
@@ -23,13 +26,31 @@ def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 from database import SessionLocal, engine, Base, ensure_schema_compatibility
-from models import User, Report, LabValue, Medicine, DoctorNote, ReportCategory, DoctorProfile, PatientProfile
+from models import (
+    User,
+    Report,
+    LabValue,
+    Medicine,
+    DoctorNote,
+    ReportCategory,
+    DoctorProfile,
+    PatientProfile,
+    DoctorCategory,
+    DoctorSpecialty,
+    PatientDoctorAccess,
+)
 from schemas import (
     UserCreate, UserLogin, Token, ReportCreate, ReportResponse,
     LabValueCreate, LabValueResponse, MedicineCreate, MedicineResponse,
     DoctorNoteCreate, DoctorNoteResponse, ReportCategoryResponse,
-    DoctorProfileCreate, DoctorProfileResponse, PatientProfileCreate, PatientProfileResponse
+    DoctorProfileCreate, DoctorProfileResponse, PatientProfileCreate, PatientProfileResponse,
+    DoctorCategoryResponse,
+    DoctorSpecialtyResponse,
+    DoctorSpecialtyCreate,
+    DoctorProfileResponse,
+    PatientDoctorAccessCreate,
 )
+from services.doctor_taxonomy_seed import seed_doctor_taxonomy_if_empty
 from auth import create_access_token, verify_token, get_current_user
 from services.ocr_service import OCRService
 from services.nlp_service import NLPService
@@ -39,6 +60,11 @@ from services.report_parser import ReportParser
 # Create tables
 Base.metadata.create_all(bind=engine)
 ensure_schema_compatibility()
+_seed_db = SessionLocal()
+try:
+    seed_doctor_taxonomy_if_empty(_seed_db)
+finally:
+    _seed_db.close()
 
 app = FastAPI(title="Medical Report Analyzer API", version="1.0.0")
 
@@ -75,26 +101,84 @@ os.makedirs("charts", exist_ok=True)
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=dict)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    # Check if user exists
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
-    
-    # Create user with hashed password
+
     password_hash = hash_password(user_data.password)
-    
+    doctor_category_id = None
+    doctor_specialty_id = None
+
+    if user_data.role == "doctor":
+        cid = user_data.doctor_category_id
+        if not cid:
+            raise HTTPException(status_code=400, detail="Doctors must select a clinical category")
+        cat = db.query(DoctorCategory).filter(DoctorCategory.id == cid).first()
+        if not cat:
+            raise HTTPException(status_code=400, detail="Invalid clinical category")
+
+        new_name = (user_data.new_specialty_name or "").strip()
+        if new_name:
+            spec = (
+                db.query(DoctorSpecialty)
+                .filter(
+                    DoctorSpecialty.category_id == cid,
+                    DoctorSpecialty.name == new_name,
+                )
+                .first()
+            )
+            if spec:
+                doctor_specialty_id = spec.id
+            else:
+                spec = DoctorSpecialty(
+                    category_id=cid,
+                    name=new_name,
+                    description=(user_data.new_specialty_description or None),
+                )
+                db.add(spec)
+                db.flush()
+                doctor_specialty_id = spec.id
+        elif user_data.doctor_specialty_id:
+            spec = (
+                db.query(DoctorSpecialty)
+                .filter(
+                    DoctorSpecialty.id == user_data.doctor_specialty_id,
+                    DoctorSpecialty.category_id == cid,
+                )
+                .first()
+            )
+            if not spec:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Specialty does not belong to the selected category",
+                )
+            doctor_specialty_id = spec.id
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Select an existing specialty or create a new one",
+            )
+
+        doctor_category_id = cid
+
     user = User(
         email=user_data.email,
         password_hash=password_hash,
         full_name=user_data.full_name,
-        role=user_data.role
+        role=user_data.role,
+        doctor_category_id=doctor_category_id,
+        doctor_specialty_id=doctor_specialty_id,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     access_token = create_access_token(data={"sub": user.email, "role": user.role})
-    return {"access_token": access_token, "token_type": "bearer", "user": {"id": user.id, "email": user.email, "role": user.role}}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {"id": user.id, "email": user.email, "role": user.role},
+    }
 
 @app.post("/api/auth/login", response_model=dict)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
@@ -558,11 +642,321 @@ async def export_csv(
         headers={"Content-Disposition": "attachment; filename=lab_values.csv"}
     )
 
-# Report Categories
-@app.get("/api/categories", response_model=list)
-async def get_categories(db: Session = Depends(get_db)):
+# Report categories (OCR / report type taxonomy — distinct from doctor clinical categories)
+@app.get("/api/report-categories", response_model=list)
+async def get_report_categories(db: Session = Depends(get_db)):
     categories = db.query(ReportCategory).all()
     return [{"id": c.id, "name": c.name, "description": c.description} for c in categories]
+
+
+# Doctor clinical taxonomy & discovery
+@app.get("/api/categories", response_model=list)
+async def get_doctor_categories(db: Session = Depends(get_db)):
+    rows = db.query(DoctorCategory).order_by(DoctorCategory.name.asc()).all()
+    return [
+        DoctorCategoryResponse(id=c.id, name=c.name, description=c.description).model_dump()
+        for c in rows
+    ]
+
+
+@app.get("/api/specialties", response_model=list)
+async def get_doctor_specialties(
+    category_id: int = None,
+    db: Session = Depends(get_db),
+):
+    q = db.query(DoctorSpecialty)
+    if category_id is not None:
+        q = q.filter(DoctorSpecialty.category_id == category_id)
+    rows = q.order_by(DoctorSpecialty.name.asc()).all()
+    return [
+        DoctorSpecialtyResponse(
+            id=s.id, name=s.name, description=s.description, category_id=s.category_id
+        ).model_dump()
+        for s in rows
+    ]
+
+
+@app.post("/api/specialties", response_model=dict)
+async def create_doctor_specialty(
+    body: DoctorSpecialtyCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Only doctors can create specialties")
+    cat = db.query(DoctorCategory).filter(DoctorCategory.id == body.category_id).first()
+    if not cat:
+        raise HTTPException(status_code=404, detail="Category not found")
+    name = body.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Specialty name is required")
+    existing = (
+        db.query(DoctorSpecialty)
+        .filter(
+            DoctorSpecialty.category_id == body.category_id,
+            DoctorSpecialty.name == name,
+        )
+        .first()
+    )
+    if existing:
+        return {
+            "id": existing.id,
+            "name": existing.name,
+            "description": existing.description,
+            "category_id": existing.category_id,
+            "already_existed": True,
+        }
+    spec = DoctorSpecialty(
+        category_id=body.category_id, name=name, description=body.description
+    )
+    db.add(spec)
+    db.commit()
+    db.refresh(spec)
+    return {
+        "id": spec.id,
+        "name": spec.name,
+        "description": spec.description,
+        "category_id": spec.category_id,
+        "already_existed": False,
+    }
+
+
+@app.get("/api/doctors", response_model=list)
+async def list_doctors_for_discovery(
+    name: str = None,
+    category_id: int = None,
+    specialty_id: int = None,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    q = (
+        db.query(User, DoctorCategory, DoctorSpecialty)
+        .outerjoin(DoctorCategory, User.doctor_category_id == DoctorCategory.id)
+        .outerjoin(DoctorSpecialty, User.doctor_specialty_id == DoctorSpecialty.id)
+        .filter(User.role == "doctor")
+    )
+    if name:
+        q = q.filter(User.full_name.ilike(f"%{name.strip()}%"))
+    if category_id is not None:
+        q = q.filter(User.doctor_category_id == category_id)
+    if specialty_id is not None:
+        q = q.filter(User.doctor_specialty_id == specialty_id)
+
+    q = q.order_by(
+        case((User.doctor_category_id.is_(None), 1), else_=0),
+        DoctorCategory.name.asc(),
+        DoctorSpecialty.name.asc(),
+        User.full_name.asc(),
+    )
+
+    out = []
+    for user, dcat, dspec in q.all():
+        out.append(
+            {
+                "id": user.id,
+                "full_name": user.full_name,
+                "category_id": dcat.id if dcat else None,
+                "category_name": dcat.name if dcat else None,
+                "specialty_id": dspec.id if dspec else None,
+                "specialty_name": dspec.name if dspec else None,
+            }
+        )
+    return out
+
+
+@app.get("/api/patient/discovery-stats", response_model=dict)
+async def patient_discovery_stats(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Patients only")
+    total_doctors = db.query(User).filter(User.role == "doctor").count()
+    active = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.patient_id == current_user["id"],
+            PatientDoctorAccess.status == "accepted",
+        )
+        .count()
+    )
+    return {
+        "total_doctors_on_platform": total_doctors,
+        "your_active_doctors": active,
+    }
+
+
+@app.get("/api/doctor/assignment-stats", response_model=dict)
+async def doctor_assignment_stats(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    total_patients = db.query(User).filter(User.role == "patient").count()
+    assigned = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status == "accepted",
+        )
+        .count()
+    )
+    return {
+        "total_patients_on_platform": total_patients,
+        "your_assigned_patients": assigned,
+    }
+
+
+@app.post("/api/patient/doctor-access", response_model=dict)
+async def request_doctor_access(
+    body: PatientDoctorAccessCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Patients only")
+    if body.doctor_id == current_user["id"]:
+        raise HTTPException(status_code=400, detail="Invalid doctor")
+
+    doctor = (
+        db.query(User)
+        .filter(User.id == body.doctor_id, User.role == "doctor")
+        .first()
+    )
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Doctor not found")
+
+    row = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.patient_id == current_user["id"],
+            PatientDoctorAccess.doctor_id == body.doctor_id,
+        )
+        .first()
+    )
+    if row:
+        if row.status == "accepted":
+            raise HTTPException(status_code=400, detail="Already an active connection")
+        if row.status == "rejected":
+            row.status = "pending"
+        row.updated_at = datetime.utcnow()
+    else:
+        row = PatientDoctorAccess(
+            patient_id=current_user["id"],
+            doctor_id=body.doctor_id,
+            status="pending",
+        )
+        db.add(row)
+    db.commit()
+    db.refresh(row)
+    return {"id": row.id, "status": row.status}
+
+
+@app.get("/api/patient/doctor-access", response_model=list)
+async def list_patient_doctor_access(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Patients only")
+    rows = (
+        db.query(PatientDoctorAccess, User)
+        .join(User, PatientDoctorAccess.doctor_id == User.id)
+        .filter(PatientDoctorAccess.patient_id == current_user["id"])
+        .order_by(PatientDoctorAccess.updated_at.desc())
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "patient_id": r.patient_id,
+            "doctor_id": r.doctor_id,
+            "status": r.status,
+            "doctor_name": du.full_name,
+        }
+        for r, du in rows
+    ]
+
+
+@app.get("/api/doctor/patient-access-requests", response_model=list)
+async def list_doctor_access_requests(
+    status: str = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    q = (
+        db.query(PatientDoctorAccess, User)
+        .join(User, PatientDoctorAccess.patient_id == User.id)
+        .filter(PatientDoctorAccess.doctor_id == current_user["id"])
+    )
+    if status:
+        q = q.filter(PatientDoctorAccess.status == status)
+    rows = q.order_by(PatientDoctorAccess.created_at.desc()).all()
+    return [
+        {
+            "id": r.id,
+            "patient_id": r.patient_id,
+            "doctor_id": r.doctor_id,
+            "status": r.status,
+            "patient_name": pu.full_name,
+        }
+        for r, pu in rows
+    ]
+
+
+@app.post("/api/doctor/patient-access-requests/{request_id}/accept", response_model=dict)
+async def accept_patient_access_request(
+    request_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    row = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.id == request_id,
+            PatientDoctorAccess.doctor_id == current_user["id"],
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if row.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+    row.status = "accepted"
+    row.updated_at = datetime.utcnow()
+    db.commit()
+    return {"id": row.id, "status": row.status}
+
+
+@app.post("/api/doctor/patient-access-requests/{request_id}/reject", response_model=dict)
+async def reject_patient_access_request(
+    request_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    row = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.id == request_id,
+            PatientDoctorAccess.doctor_id == current_user["id"],
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Request not found")
+    if row.status != "pending":
+        raise HTTPException(status_code=400, detail="Request is not pending")
+    row.status = "rejected"
+    row.updated_at = datetime.utcnow()
+    db.commit()
+    return {"id": row.id, "status": row.status}
 
 # Users endpoint (for doctors to see patients)
 @app.get("/api/users/patients")
@@ -935,6 +1329,26 @@ async def get_patient_details(
             "reference_range": lv.reference_range,
             "report_id": lv.report_id
         } for lv in abnormal_values]
+    }
+
+@app.get("/api/simulate/{report_id}")
+def simulate_from_report(report_id: int):
+    
+    # 🔹 Fetch report data (OCR extracted values)
+    report = get_report_from_db(report_id)
+
+    # Example extracted values
+    cholesterol = report.get("cholesterol", 200)
+    bp = report.get("blood_pressure", 120)
+
+    # Convert to blockage (simple logic)
+    blockage = min((cholesterol / 300) * 100, 90)
+
+    result = simulate(blockage)
+
+    return {
+        "blockage": blockage,
+        **result
     }
 
 if __name__ == "__main__":

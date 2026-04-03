@@ -11,6 +11,7 @@ import DoctorDashboard from './pages/DoctorDashboard'
 import DoctorProfile from './pages/DoctorProfile'
 import PatientDashboard from './pages/PatientDashboard'
 import PatientProfile from './pages/PatientProfile'
+import FindDoctors from './pages/FindDoctors'
 import Layout from './components/Layout'
 
 function ProtectedRoute({ children }) {
@@ -51,10 +52,12 @@ function AppRoutes() {
             <Route path="doctor/patient/:id" element={<DoctorInterface />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/:id" element={<ReportViewer />} />
+            <Route path="medicines" element={<Medicines />} />
           </>
         ) : (
           <>
             <Route path="dashboard" element={<PatientDashboard />} />
+            <Route path="find-doctors" element={<FindDoctors />} />
             <Route path="profile" element={<PatientProfile />} />
             <Route path="reports" element={<Reports />} />
             <Route path="reports/:id" element={<ReportViewer />} />

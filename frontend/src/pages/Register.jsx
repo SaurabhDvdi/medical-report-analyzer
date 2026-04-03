@@ -1,29 +1,97 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import api from '../utils/api'
 
 export default function Register() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     fullName: '',
-    role: 'patient'
+    role: 'patient',
+    doctor_category_id: '',
+    doctor_specialty_id: '',
+    useNewSpecialty: false,
+    new_specialty_name: '',
+    new_specialty_description: '',
   })
+  const [categories, setCategories] = useState([])
+  const [specialties, setSpecialties] = useState([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const { register } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const loadCategories = async () => {
+      try {
+        const res = await api.get('/api/categories')
+        setCategories(res.data)
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    loadCategories()
+  }, [])
+
+  useEffect(() => {
+    const cid = formData.doctor_category_id
+    if (!cid || formData.role !== 'doctor') {
+      setSpecialties([])
+      return
+    }
+    const load = async () => {
+      try {
+        const res = await api.get('/api/specialties', { params: { category_id: cid } })
+        setSpecialties(res.data)
+      } catch (e) {
+        console.error(e)
+        setSpecialties([])
+      }
+    }
+    load()
+  }, [formData.doctor_category_id, formData.role])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
+    let doctorPayload = null
+    if (formData.role === 'doctor') {
+      if (!formData.doctor_category_id) {
+        setError('Please select a clinical category.')
+        setLoading(false)
+        return
+      }
+      doctorPayload = {
+        doctor_category_id: Number(formData.doctor_category_id),
+      }
+      if (formData.useNewSpecialty) {
+        if (!formData.new_specialty_name.trim()) {
+          setError('Enter a name for your new specialty.')
+          setLoading(false)
+          return
+        }
+        doctorPayload.new_specialty_name = formData.new_specialty_name.trim()
+        doctorPayload.new_specialty_description =
+          formData.new_specialty_description.trim() || null
+      } else {
+        if (!formData.doctor_specialty_id) {
+          setError('Please select a specialty or choose “Add new specialty”.')
+          setLoading(false)
+          return
+        }
+        doctorPayload.doctor_specialty_id = Number(formData.doctor_specialty_id)
+      }
+    }
+
     const result = await register(
       formData.email,
       formData.password,
       formData.fullName,
-      formData.role
+      formData.role,
+      doctorPayload
     )
     setLoading(false)
 
@@ -108,12 +176,124 @@ export default function Register() {
                 name="role"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    role: e.target.value,
+                    doctor_category_id: '',
+                    doctor_specialty_id: '',
+                    useNewSpecialty: false,
+                    new_specialty_name: '',
+                    new_specialty_description: '',
+                  })
+                }
               >
                 <option value="patient">Patient</option>
                 <option value="doctor">Doctor</option>
               </select>
             </div>
+
+            {formData.role === 'doctor' && (
+              <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-white">
+                <p className="text-sm font-medium text-gray-800">Clinical profile</p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Category</label>
+                  <select
+                    required
+                    className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md sm:text-sm"
+                    value={formData.doctor_category_id}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        doctor_category_id: e.target.value,
+                        doctor_specialty_id: '',
+                      })
+                    }
+                  >
+                    <option value="">Select category…</option>
+                    {categories.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-700">
+                  <input
+                    type="checkbox"
+                    checked={formData.useNewSpecialty}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        useNewSpecialty: e.target.checked,
+                        doctor_specialty_id: '',
+                        new_specialty_name: '',
+                        new_specialty_description: '',
+                      })
+                    }
+                  />
+                  My specialty is not listed — add a new one
+                </label>
+                {!formData.useNewSpecialty ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700">Specialty</label>
+                    <select
+                      required={!!formData.doctor_category_id}
+                      className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md sm:text-sm disabled:bg-gray-100"
+                      value={formData.doctor_specialty_id}
+                      onChange={(e) =>
+                        setFormData({ ...formData, doctor_specialty_id: e.target.value })
+                      }
+                      disabled={!formData.doctor_category_id}
+                    >
+                      <option value="">
+                        {formData.doctor_category_id
+                          ? 'Select specialty…'
+                          : 'Choose a category first'}
+                      </option>
+                      {specialties.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        New specialty name
+                      </label>
+                      <input
+                        type="text"
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md sm:text-sm"
+                        value={formData.new_specialty_name}
+                        onChange={(e) =>
+                          setFormData({ ...formData, new_specialty_name: e.target.value })
+                        }
+                        placeholder="e.g. Interventional cardiology"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">
+                        Description (optional)
+                      </label>
+                      <textarea
+                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md sm:text-sm"
+                        rows={2}
+                        value={formData.new_specialty_description}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            new_specialty_description: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -130,4 +310,3 @@ export default function Register() {
     </div>
   )
 }
-

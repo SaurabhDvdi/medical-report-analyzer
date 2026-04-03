@@ -7,6 +7,10 @@ class UserCreate(BaseModel):
     password: str
     full_name: str
     role: str  # "patient" or "doctor"
+    doctor_category_id: Optional[int] = None
+    doctor_specialty_id: Optional[int] = None
+    new_specialty_name: Optional[str] = None
+    new_specialty_description: Optional[str] = None
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -127,4 +131,27 @@ class PatientProfileResponse(BaseModel):
     lifestyle_indicators: Optional[str] = None
     emergency_contact_name: Optional[str] = None
     emergency_contact_phone: Optional[str] = None
+
+
+class DoctorCategoryResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+
+
+class DoctorSpecialtyResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str] = None
+    category_id: int
+
+
+class DoctorSpecialtyCreate(BaseModel):
+    category_id: int
+    name: str
+    description: Optional[str] = None
+
+
+class PatientDoctorAccessCreate(BaseModel):
+    doctor_id: int
 
