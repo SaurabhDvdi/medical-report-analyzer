@@ -65,6 +65,21 @@ def ensure_schema_compatibility() -> None:
         if "doctor_specialty_id" not in user_cols:
             cur.execute("ALTER TABLE users ADD COLUMN doctor_specialty_id INTEGER")
             conn.commit()
+
+        # Patient-doctor access table might exist but miss timestamp columns.
+        cur.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+            ("patient_doctor_access",),
+        )
+        if cur.fetchone() is not None:
+            cur.execute("PRAGMA table_info(patient_doctor_access)")
+            access_cols = {row[1] for row in cur.fetchall()}
+            if "granted_at" not in access_cols:
+                cur.execute("ALTER TABLE patient_doctor_access ADD COLUMN granted_at TEXT")
+                conn.commit()
+            if "revoked_at" not in access_cols:
+                cur.execute("ALTER TABLE patient_doctor_access ADD COLUMN revoked_at TEXT")
+                conn.commit()
     finally:
         conn.close()
 

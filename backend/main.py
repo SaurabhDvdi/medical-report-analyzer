@@ -93,6 +93,32 @@ def get_db():
     finally:
         db.close()
 
+
+def check_doctor_access(patient_id: int, doctor_id: int, db: Session) -> bool:
+    """
+    True only when the patient has explicitly approved access for this doctor.
+
+    Backward-compat:
+    - Older rows may use status='accepted' (pre-renaming). Treat it as approved.
+    - 'revoked' never counts as approved.
+    """
+    allowed_statuses = ["approved", "accepted"]
+    return (
+        db.query(PatientDoctorAccess.id)
+        .filter(
+            PatientDoctorAccess.patient_id == patient_id,
+            PatientDoctorAccess.doctor_id == doctor_id,
+            PatientDoctorAccess.status.in_(allowed_statuses),
+        )
+        .first()
+        is not None
+    )
+
+
+def require_doctor_access(patient_id: int, doctor_id: int, db: Session) -> None:
+    if not check_doctor_access(patient_id=patient_id, doctor_id=doctor_id, db=db):
+        raise HTTPException(status_code=403, detail="Access not granted")
+
 # Ensure upload directory exists
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
@@ -197,28 +223,49 @@ async def upload_report(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    # Save file
-    file_path = os.path.join(UPLOAD_DIR, f"{datetime.now().timestamp()}_{file.filename}")
+    # 1. Role restriction (recommended)
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Only patients can upload reports")
+
+    # 2. Validate file type
+    allowed_types = ["application/pdf", "image/png", "image/jpeg"]
+    if file.content_type not in allowed_types:
+        raise HTTPException(status_code=400, detail="Unsupported file type")
+
+    # 3. Generate safe file name
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    safe_filename = file.filename.replace(" ", "_")
+    file_path = os.path.join(UPLOAD_DIR, f"{timestamp}_{safe_filename}")
+
+    # 4. Stream file (avoid large memory usage)
     with open(file_path, "wb") as f:
-        content = await file.read()
-        f.write(content)
-    
-    # Create report record
+        while True:
+            chunk = await file.read(1024 * 1024)  # 1MB chunks
+            if not chunk:
+                break
+            f.write(chunk)
+
+    # 5. Create report record
     report = Report(
         user_id=current_user["id"],
-        file_name=file.filename,
+        file_name=safe_filename,
         file_path=file_path,
-        file_type=file.content_type or "application/pdf",
+        file_type=file.content_type,
         ocr_status="pending"
     )
     db.add(report)
     db.commit()
     db.refresh(report)
-    
-    # Process in background
+
+    # 6. Background processing
     background_tasks.add_task(process_report, report.id, file_path)
-    
-    return {"id": report.id, "file_name": report.file_name, "status": "uploaded", "ocr_status": "processing"}
+
+    return {
+        "id": report.id,
+        "file_name": report.file_name,
+        "status": "uploaded",
+        "ocr_status": "processing"
+    }
 
 def process_report(report_id: int, file_path: str):
     """Background task to process report"""
@@ -275,18 +322,103 @@ async def get_reports(
     db: Session = Depends(get_db)
 ):
     if current_user["role"] == "doctor":
-        reports = db.query(Report).all()
+        reports = (
+            db.query(Report)
+            .join(
+                PatientDoctorAccess,
+                PatientDoctorAccess.patient_id == Report.user_id,
+            )
+            .filter(
+                PatientDoctorAccess.doctor_id == current_user["id"],
+                PatientDoctorAccess.status == "approved",
+            )
+            .distinct()
+            .all()
+        )
+
+    elif current_user["role"] == "patient":
+        reports = (
+            db.query(Report)
+            .filter(Report.user_id == current_user["id"])
+            .all()
+        )
+
     else:
-        reports = db.query(Report).filter(Report.user_id == current_user["id"]).all()
-    
-    return [{
-        "id": r.id,
-        "file_name": r.file_name,
-        "upload_date": r.upload_date.isoformat(),
-        "ocr_status": r.ocr_status,
-        "ai_summary": r.ai_summary,
-        "category": r.category.name if r.category else None
-    } for r in reports]
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+
+    return [
+        {
+            "id": r.id,
+            "file_name": r.file_name,
+            "upload_date": r.upload_date.isoformat() if r.upload_date else None,
+            "ocr_status": r.ocr_status,
+            "ai_summary": r.ai_summary,
+            "category": r.category.name if r.category else None
+        }
+        for r in reports
+    ]
+
+@app.get("/api/reports/summary")
+async def get_reports_summary(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    if current_user["role"] == "doctor":
+        # Get reports accessible to doctor
+        reports_query = (
+            db.query(Report)
+            .join(
+                PatientDoctorAccess,
+                PatientDoctorAccess.patient_id == Report.user_id,
+            )
+            .filter(
+                PatientDoctorAccess.doctor_id == current_user["id"],
+                PatientDoctorAccess.status == "approved",
+            )
+        )
+    elif current_user["role"] == "patient":
+        # Get patient's own reports
+        reports_query = db.query(Report).filter(Report.user_id == current_user["id"])
+    else:
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+
+    # Get total reports count
+    total_reports = reports_query.count()
+
+    # Get recent reports (last 3)
+    recent_reports = (
+        reports_query
+        .order_by(Report.upload_date.desc())
+        .limit(3)
+        .all()
+    )
+
+    # Get abnormal values count (aggregated query to avoid N+1)
+    abnormal_count = (
+        db.query(LabValue)
+        .join(Report, LabValue.report_id == Report.id)
+        .filter(
+            LabValue.is_abnormal == True,
+            Report.id.in_([r.id for r in reports_query.all()])
+        )
+        .count()
+    )
+
+    return {
+        "total_reports": total_reports,
+        "abnormal_count": abnormal_count,
+        "recent_reports": [
+            {
+                "id": r.id,
+                "file_name": r.file_name,
+                "upload_date": r.upload_date.isoformat() if r.upload_date else None,
+                "ocr_status": r.ocr_status,
+                "ai_summary": r.ai_summary,
+                "category": r.category.name if r.category else None
+            }
+            for r in recent_reports
+        ]
+    }
 
 @app.get("/api/reports/{report_id}", response_model=dict)
 async def get_report(
@@ -294,31 +426,59 @@ async def get_report(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    report = db.query(Report).filter(Report.id == report_id).first()
+    report = (
+        db.query(Report)
+        .filter(Report.id == report_id)
+        .first()
+    )
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    
-    if current_user["role"] != "doctor" and report.user_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    lab_values = db.query(LabValue).filter(LabValue.report_id == report_id).all()
-    
+
+    # --- Access Control ---
+    if current_user["role"] == "patient":
+        if report.user_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    elif current_user["role"] == "doctor":
+        access = db.query(PatientDoctorAccess).filter(
+            PatientDoctorAccess.patient_id == report.user_id,
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status == "approved",
+        ).first()
+
+        if not access:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    else:
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+
+    # --- Fetch lab values ---
+    lab_values = (
+        db.query(LabValue)
+        .filter(LabValue.report_id == report_id)
+        .all()
+    )
+
     return {
         "id": report.id,
         "file_name": report.file_name,
-        "upload_date": report.upload_date.isoformat(),
+        "upload_date": report.upload_date.isoformat() if report.upload_date else None,
         "ocr_status": report.ocr_status,
         "ai_summary": report.ai_summary,
         "extracted_text": report.extracted_text,
         "category": report.category.name if report.category else None,
-        "lab_values": [{
-            "id": lv.id,
-            "parameter_name": lv.parameter_name,
-            "value": lv.value,
-            "unit": lv.unit,
-            "reference_range": lv.reference_range,
-            "is_abnormal": lv.is_abnormal
-        } for lv in lab_values]
+        "lab_values": [
+            {
+                "id": lv.id,
+                "parameter_name": lv.parameter_name,
+                "value": lv.value,
+                "unit": lv.unit,
+                "reference_range": lv.reference_range,
+                "is_abnormal": lv.is_abnormal
+            }
+            for lv in lab_values
+        ]
     }
 
 @app.delete("/api/reports/{report_id}")
@@ -328,21 +488,31 @@ async def delete_report(
     db: Session = Depends(get_db)
 ):
     report = db.query(Report).filter(Report.id == report_id).first()
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    
-    if current_user["role"] != "doctor" and report.user_id != current_user["id"]:
+
+    # --- Strict Ownership Check ---
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Only patients can delete reports")
+
+    if report.user_id != current_user["id"]:
         raise HTTPException(status_code=403, detail="Access denied")
-    
-    # Delete file
-    if os.path.exists(report.file_path):
-        os.remove(report.file_path)
-    
-    # Delete related data
+
+    # --- Safe File Deletion ---
+    try:
+        if report.file_path and os.path.exists(report.file_path):
+            os.remove(report.file_path)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail="File deletion failed")
+
+    # --- Delete Related Data ---
     db.query(LabValue).filter(LabValue.report_id == report_id).delete()
+
+    # --- Delete Report ---
     db.delete(report)
     db.commit()
-    
+
     return {"message": "Report deleted successfully"}
 
 @app.get("/api/reports/{report_id}/download")
@@ -352,18 +522,47 @@ async def download_report(
     db: Session = Depends(get_db)
 ):
     from fastapi.responses import FileResponse
-    
+
     report = db.query(Report).filter(Report.id == report_id).first()
+
     if not report:
         raise HTTPException(status_code=404, detail="Report not found")
-    
-    if current_user["role"] != "doctor" and report.user_id != current_user["id"]:
-        raise HTTPException(status_code=403, detail="Access denied")
-    
-    if not os.path.exists(report.file_path):
+
+    # --- Access Control ---
+    if current_user["role"] == "patient":
+        if report.user_id != current_user["id"]:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    elif current_user["role"] == "doctor":
+        access = db.query(PatientDoctorAccess).filter(
+            PatientDoctorAccess.patient_id == report.user_id,
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status == "approved",
+        ).first()
+
+        if not access:
+            raise HTTPException(status_code=403, detail="Access denied")
+
+    else:
+        raise HTTPException(status_code=403, detail="Unauthorized role")
+
+    # --- Path Safety Check ---
+    abs_path = os.path.abspath(report.file_path)
+    upload_root = os.path.abspath(UPLOAD_DIR)
+
+    if not abs_path.startswith(upload_root):
+        raise HTTPException(status_code=403, detail="Invalid file path")
+
+    # --- File Exists Check ---
+    if not os.path.exists(abs_path):
         raise HTTPException(status_code=404, detail="File not found")
-    
-    return FileResponse(report.file_path, filename=report.file_name)
+
+    # --- Return File ---
+    return FileResponse(
+        abs_path,
+        filename=report.file_name,
+        media_type=report.file_type or "application/octet-stream"
+    )
 
 # Lab Values endpoints
 @app.get("/api/lab-values", response_model=list)
@@ -375,8 +574,20 @@ async def get_lab_values(
     db: Session = Depends(get_db)
 ):
     query = db.query(LabValue).join(Report)
-    
-    if current_user["role"] != "doctor":
+
+    if current_user["role"] == "doctor":
+        # Doctors see lab values only for patients with approved access.
+        query = (
+            query.join(
+                PatientDoctorAccess,
+                PatientDoctorAccess.patient_id == Report.user_id,
+            )
+            .filter(
+                PatientDoctorAccess.doctor_id == current_user["id"],
+                PatientDoctorAccess.status.in_(["approved", "accepted"]),
+            )
+        )
+    else:
         query = query.filter(Report.user_id == current_user["id"])
     
     if parameter_name:
@@ -502,6 +713,12 @@ async def create_doctor_note(
 ):
     if current_user["role"] != "doctor":
         raise HTTPException(status_code=403, detail="Only doctors can create notes")
+
+    require_doctor_access(
+        patient_id=note_data.patient_id,
+        doctor_id=current_user["id"],
+        db=db,
+    )
     
     note = DoctorNote(
         doctor_id=current_user["id"],
@@ -531,7 +748,17 @@ async def get_doctor_notes(
     query = db.query(DoctorNote)
     
     if current_user["role"] == "doctor":
-        query = query.filter(DoctorNote.doctor_id == current_user["id"])
+        query = (
+            query.join(
+                PatientDoctorAccess,
+                PatientDoctorAccess.patient_id == DoctorNote.patient_id,
+            )
+            .filter(
+                DoctorNote.doctor_id == current_user["id"],
+                PatientDoctorAccess.doctor_id == current_user["id"],
+                PatientDoctorAccess.status.in_(["approved", "accepted"]),
+            )
+        )
     else:
         query = query.filter(DoctorNote.patient_id == current_user["id"])
     
@@ -617,7 +844,18 @@ async def export_csv(
     import io
     
     query = db.query(LabValue).join(Report)
-    if current_user["role"] != "doctor":
+    if current_user["role"] == "doctor":
+        query = (
+            query.join(
+                PatientDoctorAccess,
+                PatientDoctorAccess.patient_id == Report.user_id,
+            )
+            .filter(
+                PatientDoctorAccess.doctor_id == current_user["id"],
+                PatientDoctorAccess.status.in_(["approved", "accepted"]),
+            )
+        )
+    else:
         query = query.filter(Report.user_id == current_user["id"])
     
     lab_values = query.all()
@@ -776,7 +1014,7 @@ async def patient_discovery_stats(
         db.query(PatientDoctorAccess)
         .filter(
             PatientDoctorAccess.patient_id == current_user["id"],
-            PatientDoctorAccess.status == "accepted",
+            PatientDoctorAccess.status.in_(["approved", "accepted"]),
         )
         .count()
     )
@@ -798,7 +1036,7 @@ async def doctor_assignment_stats(
         db.query(PatientDoctorAccess)
         .filter(
             PatientDoctorAccess.doctor_id == current_user["id"],
-            PatientDoctorAccess.status == "accepted",
+            PatientDoctorAccess.status.in_(["approved", "accepted"]),
         )
         .count()
     )
@@ -836,10 +1074,11 @@ async def request_doctor_access(
         .first()
     )
     if row:
-        if row.status == "accepted":
+        if row.status in ["approved", "accepted"]:
             raise HTTPException(status_code=400, detail="Already an active connection")
-        if row.status == "rejected":
+        if row.status in ["rejected", "revoked"]:
             row.status = "pending"
+            row.revoked_at = None
         row.updated_at = datetime.utcnow()
     else:
         row = PatientDoctorAccess(
@@ -927,7 +1166,9 @@ async def accept_patient_access_request(
         raise HTTPException(status_code=404, detail="Request not found")
     if row.status != "pending":
         raise HTTPException(status_code=400, detail="Request is not pending")
-    row.status = "accepted"
+    row.status = "approved"
+    row.granted_at = datetime.utcnow()
+    row.revoked_at = None
     row.updated_at = datetime.utcnow()
     db.commit()
     return {"id": row.id, "status": row.status}
@@ -958,6 +1199,34 @@ async def reject_patient_access_request(
     db.commit()
     return {"id": row.id, "status": row.status}
 
+
+# Patient revocation endpoint (doctors lose access instantly after revocation)
+@app.post("/api/patient/doctor-access/{request_id}/revoke", response_model=dict)
+async def revoke_patient_doctor_access(
+    request_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "patient":
+        raise HTTPException(status_code=403, detail="Patients only")
+
+    row = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.id == request_id,
+            PatientDoctorAccess.patient_id == current_user["id"],
+        )
+        .first()
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Access request not found")
+
+    row.status = "revoked"
+    row.revoked_at = datetime.utcnow()
+    row.updated_at = datetime.utcnow()
+    db.commit()
+    return {"id": row.id, "status": row.status}
+
 # Users endpoint (for doctors to see patients)
 @app.get("/api/users/patients")
 async def get_patients(
@@ -967,8 +1236,19 @@ async def get_patients(
 ):
     if current_user["role"] != "doctor":
         raise HTTPException(status_code=403, detail="Only doctors can view patients")
-    
-    query = db.query(User).filter(User.role == "patient")
+
+    # Privacy enforcement: doctors can ONLY see patients with approved access.
+    query = (
+        db.query(User,PatientProfile)
+        .join(PatientDoctorAccess, PatientDoctorAccess.patient_id == User.id)
+        .outerjoin(PatientProfile,PatientProfile.user_id == User.id)
+        .filter(
+            User.role == "patient",
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status == "approved",
+        )
+        .distinct()
+    )
     if search:
         query = query.filter(
             (User.full_name.ilike(f"%{search}%")) | 
@@ -976,18 +1256,17 @@ async def get_patients(
         )
     
     patients = query.all()
-    result = []
-    for p in patients:
-        profile = db.query(PatientProfile).filter(PatientProfile.user_id == p.id).first()
-        result.append({
-            "id": p.id,
-            "email": p.email,
-            "full_name": p.full_name,
+    return [
+        {
+            "id": user.id,
+            "email": user.email,
+            "full_name": user.full_name,
             "age": profile.age if profile else None,
             "gender": profile.gender if profile else None,
             "blood_group": profile.blood_group if profile else None
-        })
-    return result
+        }
+        for user, profile in  patients
+    ]
 
 # Doctor Profile endpoints
 @app.get("/api/doctor/profile", response_model=dict)
@@ -1226,13 +1505,37 @@ async def get_doctor_statistics(
     ).count()
     
     # Critical cases (patients with abnormal lab values)
-    critical_patients = db.query(User).join(Report).join(LabValue).filter(
-        User.role == "patient",
-        LabValue.is_abnormal == True
-    ).distinct().count()
+    critical_patients = (
+        db.query(User)
+        .join(
+            PatientDoctorAccess,
+            PatientDoctorAccess.patient_id == User.id,
+        )
+        .join(Report, Report.user_id == User.id)
+        .join(LabValue, LabValue.report_id == Report.id)
+        .filter(
+            User.role == "patient",
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status.in_(["approved", "accepted"]),
+            LabValue.is_abnormal == True,
+        )
+        .distinct()
+        .count()
+    )
     
     # Total reports reviewed
-    total_reports = db.query(Report).count()
+    total_reports = (
+        db.query(Report)
+        .join(
+            PatientDoctorAccess,
+            PatientDoctorAccess.patient_id == Report.user_id,
+        )
+        .filter(
+            PatientDoctorAccess.doctor_id == current_user["id"],
+            PatientDoctorAccess.status.in_(["approved", "accepted"]),
+        )
+        .count()
+    )
     
     return {
         "total_patients": total_patients,
@@ -1255,6 +1558,12 @@ async def get_patient_details(
     patient = db.query(User).filter(User.id == patient_id, User.role == "patient").first()
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
+
+    require_doctor_access(
+        patient_id=patient_id,
+        doctor_id=current_user["id"],
+        db=db,
+    )
     
     # Get profile
     profile = db.query(PatientProfile).filter(PatientProfile.user_id == patient_id).first()

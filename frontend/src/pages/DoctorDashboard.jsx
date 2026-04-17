@@ -17,10 +17,6 @@ export default function DoctorDashboard() {
     total_reports: 0,
   })
   const [recentPatients, setRecentPatients] = useState([])
-  const [healthChart, setHealthChart] = useState(null)
-  const [healthChartError, setHealthChartError] = useState('')
-  const [correlationChart, setCorrelationChart] = useState(null)
-  const [correlationError, setCorrelationError] = useState('')
   const [loading, setLoading] = useState(true)
   const [statsError, setStatsError] = useState('')
 
@@ -62,45 +58,6 @@ export default function DoctorDashboard() {
         if (!cancelled) setLoading(false)
       }
 
-      try {
-        const healthSummaryRes = await api.get('/api/analytics/health-summary', {
-          responseType: 'blob',
-        })
-        if (cancelled) return
-        const blob =
-          healthSummaryRes.data instanceof Blob
-            ? healthSummaryRes.data
-            : new Blob([healthSummaryRes.data], {type: 'image/png'})
-        setHealthChart(URL.createObjectURL(blob))
-        setHealthChartError('')
-      } catch (err) {
-        if (cancelled) return
-        console.error('Error loading health summary chart:', err)
-        setHealthChart(null)
-        setHealthChartError(
-          err.response?.data?.detail || 'Health summary chart is unavailable.'
-        )
-      }
-
-      try {
-        const corrRes = await api.get('/api/analytics/correlation', {
-          responseType: 'blob',
-        })
-        if (cancelled) return
-        const blob =
-          corrRes.data instanceof Blob
-            ? corrRes.data
-            : new Blob([corrRes.data], {type: 'image/png'})
-        setCorrelationChart(URL.createObjectURL(blob))
-        setCorrelationError('')
-      } catch (err) {
-        if (cancelled) return
-        console.error('Error loading correlation chart:', err)
-        setCorrelationChart(null)
-        setCorrelationError(
-          err.response?.data?.detail || 'Correlation heatmap is unavailable.'
-        )
-      }
     }
 
     load()
@@ -108,13 +65,6 @@ export default function DoctorDashboard() {
       cancelled = true
     }
   }, [])
-
-  useEffect(() => {
-    return () => {
-      if (healthChart) URL.revokeObjectURL(healthChart)
-      if (correlationChart) URL.revokeObjectURL(correlationChart)
-    }
-  }, [healthChart, correlationChart])
 
   const respondToRequest = async (requestId, action) => {
     try {
@@ -166,7 +116,7 @@ export default function DoctorDashboard() {
                 <p className="text-3xl font-bold text-gray-900 mt-2">
                   {assignmentStats.your_assigned_patients}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">Accepted access requests</p>
+                <p className="text-xs text-gray-500 mt-1">Approved access requests</p>
               </div>
               <UserCheck className="w-12 h-12 text-emerald-500" />
             </div>
@@ -254,40 +204,7 @@ export default function DoctorDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-500" />
-              Health summary (all data)
-            </h2>
-            {healthChart && (
-              <img src={healthChart} alt="Health summary" className="w-full rounded-lg border" />
-            )}
-            {!healthChart && healthChartError && (
-              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
-                {healthChartError}
-              </p>
-            )}
-          </div>
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Correlation heatmap</h2>
-            {correlationChart && (
-              <img
-                src={correlationChart}
-                alt="Correlation heatmap"
-                className="w-full rounded-lg border"
-              />
-            )}
-            {!correlationChart && correlationError && (
-              <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
-                {correlationError}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-md mb-8">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+        <div className="bg-white rounded-lg shadow-md mb-8">          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
             <h2 className="text-xl font-semibold text-gray-900">Recent Patients</h2>
             <Link
               to="/doctor/patients"

@@ -16,8 +16,6 @@ export default function Layout() {
     ? [
         { path: '/dashboard', label: 'Dashboard', icon: Home },
         { path: '/doctor/patients', label: 'Patients', icon: User },
-        { path: '/reports', label: 'Reports', icon: FileText },
-        { path: '/medicines', label: 'Medicines', icon: Pill },
         { path: '/doctor/profile', label: 'Profile', icon: Stethoscope },
       ]
     : [

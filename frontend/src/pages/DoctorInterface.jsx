@@ -19,6 +19,7 @@ export default function DoctorInterface() {
   const [contextReportId, setContextReportId] = useState(null)
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState('')
+  const [accessError, setAccessError] = useState('')
   const [saveError, setSaveError] = useState('')
   const [saving, setSaving] = useState(false)
 
@@ -55,6 +56,7 @@ export default function DoctorInterface() {
     if (!selectedPatient || user?.role !== 'doctor') return
 
     try {
+      setAccessError('')
       const detailRes = await api.get(`/api/doctor/patient/${selectedPatient}`)
       let notes = []
       try {
@@ -71,6 +73,14 @@ export default function DoctorInterface() {
       })
     } catch (error) {
       console.error('Error fetching patient data:', error)
+      if (error.response?.status === 403) {
+        setAccessError('Access not granted. This patient’s access was revoked.')
+      } else {
+        setAccessError(
+          error.response?.data?.detail ||
+            'Unable to load patient details.'
+        )
+      }
       setPatientData(null)
     }
   }, [selectedPatient, user?.role])
@@ -145,7 +155,26 @@ export default function DoctorInterface() {
 
   if (id) {
     if (!patientData) {
-      return <div className="text-center py-12">Loading patient data...</div>
+      return (
+        <div className="text-center py-12 px-4">
+          {accessError ? (
+            <p className="text-red-700 bg-red-50 border border-red-200 rounded-md inline-block px-4 py-3">
+              {accessError}
+            </p>
+          ) : (
+            <p>Loading patient data...</p>
+          )}
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={() => navigate('/doctor/patients')}
+              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+            >
+              Back to Patients
+            </button>
+          </div>
+        </div>
+      )
     }
     return (
       <div className="px-4 py-6 bg-gray-50 min-h-screen">

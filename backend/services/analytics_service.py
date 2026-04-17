@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
-from models import LabValue, Report, User
+from models import LabValue, Report, User, PatientDoctorAccess
 import os
 
 class AnalyticsService:
@@ -22,6 +22,18 @@ class AnalyticsService:
         
         if role != "doctor":
             query = query.filter(Report.user_id == user_id)
+        else:
+            # Doctors can only see lab values for patients with approved access.
+            query = (
+                query.join(
+                    PatientDoctorAccess,
+                    PatientDoctorAccess.patient_id == Report.user_id,
+                )
+                .filter(
+                    PatientDoctorAccess.doctor_id == user_id,
+                    PatientDoctorAccess.status.in_(["approved", "accepted"]),
+                )
+            )
         
         if start_date:
             query = query.filter(Report.upload_date >= datetime.fromisoformat(start_date))

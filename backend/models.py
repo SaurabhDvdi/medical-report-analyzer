@@ -45,6 +45,8 @@ class PatientDoctorAccess(Base):
     status = Column(String, nullable=False, index=True, default="pending")  # pending, accepted, rejected
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    granted_at = Column(DateTime, nullable=True)
+    revoked_at = Column(DateTime, nullable=True)
 
     patient = relationship("User", foreign_keys=[patient_id], back_populates="doctor_access_as_patient")
     doctor = relationship("User", foreign_keys=[doctor_id], back_populates="doctor_access_as_doctor")

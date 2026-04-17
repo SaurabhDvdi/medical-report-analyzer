@@ -1,147 +1,128 @@
-import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import api from '../utils/api'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Heart, Pill, AlertCircle, TrendingUp, FileText, Activity, Loader, Stethoscope, UserCheck } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { useToast } from '../components/Toast'
+import {
+  getProfile,
+  getMedicines,
+  getDiscoveryStats,
+  getDoctorAccess,
+  grantDoctorAccess,
+  revokeDoctorAccess
+} from '../services/userService'
+
+import { getReportsSummary } from '../services/reportService'
 
 export default function PatientDashboard() {
-  const [profile, setProfile] = useState(null)
-  const [discovery, setDiscovery] = useState({
-    total_doctors_on_platform: 0,
-    your_active_doctors: 0,
+  const navigate = useNavigate()
+  const { showToast } = useToast()
+  const queryClient = useQueryClient()
+
+  // Profile query
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ['profile'],
+    queryFn: getProfile,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      showToast(error.response?.data?.detail || 'Failed to load profile', 'error')
+    }
   })
-  const [stats, setStats] = useState({
-    activeMedicines: 0,
-    abnormalValues: 0,
-    totalReports: 0,
-    recentReports: [],
+
+  // Medicines query
+  const { data: medicines, isLoading: medicinesLoading } = useQuery({
+    queryKey: ['medicines'],
+    queryFn: getMedicines,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      showToast('Failed to load medicines', 'error')
+    }
   })
-  const [healthChart, setHealthChart] = useState(null)
-  const [healthChartError, setHealthChartError] = useState('')
-  const [correlationChart, setCorrelationChart] = useState(null)
-  const [correlationError, setCorrelationError] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [statsError, setStatsError] = useState('')
 
-  useEffect(() => {
-    let cancelled = false
-
-    const fetchDashboardData = async () => {
-      setStatsError('')
-      setHealthChartError('')
-      setCorrelationError('')
-      setLoading(true)
-      try {
-        const [profileRes, medicinesRes, reportsRes] = await Promise.all([
-          api.get('/api/patient/profile'),
-          api.get('/api/medicines'),
-          api.get('/api/reports'),
-        ])
-
-        if (cancelled) return
-
-        if (profileRes.data.exists) {
-          setProfile(profileRes.data)
-        }
-
-        try {
-          const discoveryRes = await api.get('/api/patient/discovery-stats')
-          if (!cancelled) setDiscovery(discoveryRes.data)
-        } catch (e) {
-          console.error('Discovery stats:', e)
-        }
-
-        const medicines = medicinesRes.data
-        const reports = reportsRes.data
-
-        let abnormalCount = 0
-        for (const report of reports) {
-          try {
-            const reportDetail = await api.get(`/api/reports/${report.id}`)
-            if (cancelled) return
-            abnormalCount +=
-              reportDetail.data.lab_values?.filter((lv) => lv.is_abnormal).length || 0
-          } catch (err) {
-            console.error(`Error fetching report ${report.id}:`, err)
-          }
-        }
-
-        if (cancelled) return
-
-        setStats({
-          activeMedicines: medicines.filter((m) => m.status === 'current').length,
-          abnormalValues: abnormalCount,
-          totalReports: reports.length,
-          recentReports: reports.slice(0, 3),
-        })
-
-        try {
-          const healthSummaryRes = await api.get('/api/analytics/health-summary', {
-            responseType: 'blob',
-          })
-          if (cancelled) return
-          const blob =
-            healthSummaryRes.data instanceof Blob
-              ? healthSummaryRes.data
-              : new Blob([healthSummaryRes.data], { type: 'image/png' })
-          setHealthChart(URL.createObjectURL(blob))
-          setHealthChartError('')
-        } catch (err) {
-          if (cancelled) return
-          console.error('Error loading health summary chart:', err)
-          setHealthChart(null)
-          setHealthChartError(
-            err.response?.data?.detail || 'Health summary chart is unavailable right now.'
-          )
-        }
-
-        try {
-          const corrRes = await api.get('/api/analytics/correlation', {
-            responseType: 'blob',
-          })
-          if (cancelled) return
-          const blob =
-            corrRes.data instanceof Blob
-              ? corrRes.data
-              : new Blob([corrRes.data], { type: 'image/png' })
-          setCorrelationChart(URL.createObjectURL(blob))
-          setCorrelationError('')
-        } catch (err) {
-          if (cancelled) return
-          console.error('Error loading correlation chart:', err)
-          setCorrelationChart(null)
-          setCorrelationError(
-            err.response?.data?.detail || 'Correlation heatmap is unavailable right now.'
-          )
-        }
-      } catch (error) {
-        if (cancelled) return
-        console.error('Error fetching dashboard data:', error)
-        setStatsError(
-          error.response?.data?.detail || error.message || 'Failed to load dashboard.'
-        )
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
+  // Reports summary query (replaces N+1 calls)
+  const { data: reportsSummary, isLoading: reportsLoading } = useQuery({
+    queryKey: ['reports-summary'],
+    queryFn: getReportsSummary,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      showToast(error.response?.data?.detail || 'Failed to load reports', 'error')
     }
+  })
 
-    fetchDashboardData()
-    return () => {
-      cancelled = true
+  // Discovery stats query
+  const { data: discovery = { total_doctors_on_platform: 0, your_active_doctors: 0 }, isLoading: discoveryLoading } = useQuery({
+    queryKey: ['discovery-stats'],
+    queryFn: getDiscoveryStats,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      console.error('Discovery stats error:', error)
     }
-  }, [])
+  })
 
-  useEffect(() => {
-    return () => {
-      if (healthChart) URL.revokeObjectURL(healthChart)
-      if (correlationChart) URL.revokeObjectURL(correlationChart)
+  // Doctor access query
+  const { data: doctorAccess = [], isLoading: doctorAccessLoading, refetch: refetchDoctorAccess } = useQuery({
+    queryKey: ['doctor-access'],
+    queryFn: getDoctorAccess,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    onError: (error) => {
+      showToast('Failed to load doctor access', 'error')
     }
-  }, [healthChart, correlationChart])
+  })
 
-  if (loading) {
+  // Mutations for doctor access
+  const grantAccessMutation = useMutation({
+    mutationFn: grantDoctorAccess,
+    onSuccess: () => {
+      showToast('Access request sent successfully', 'success')
+      queryClient.invalidateQueries(['doctor-access'])
+      queryClient.invalidateQueries(['discovery-stats'])
+    },
+    onError: (error) => {
+      showToast(error.response?.data?.detail || 'Failed to request access', 'error')
+    }
+  })
+
+  const revokeAccessMutation = useMutation({
+    mutationFn: revokeDoctorAccess,
+    onSuccess: () => {
+      showToast('Access revoked successfully', 'success')
+      queryClient.invalidateQueries(['doctor-access'])
+      queryClient.invalidateQueries(['discovery-stats'])
+    },
+    onError: (error) => {
+      showToast(error.response?.data?.detail || 'Failed to revoke access', 'error')
+    }
+  })
+
+  // Combined loading state
+  const isLoading = profileLoading || medicinesLoading || reportsLoading || discoveryLoading || doctorAccessLoading
+
+  // Calculate stats from aggregated data
+  const stats = {
+    activeMedicines: medicines?.filter((m) => m.status === 'current').length || 0,
+    abnormalValues: reportsSummary?.abnormal_count || 0,
+    totalReports: reportsSummary?.total_reports || 0,
+    recentReports: reportsSummary?.recent_reports || [],
+  }
+
+  // Handle doctor access actions
+  const handleGrantAccess = (doctorId) => {
+    grantAccessMutation.mutate(doctorId)
+  }
+
+  const handleRevokeAccess = (accessId) => {
+    revokeAccessMutation.mutate(accessId)
+  }
+
+
+
+  if (isLoading) {
     return (
-      <div className="text-center py-12 flex flex-col items-center gap-2">
-        <Loader className="w-8 h-8 text-blue-500 animate-spin" />
-        <span>Loading your health dashboard...</span>
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-gray-900 mb-8">Patient Dashboard</h1>
+          <p>Loading dashboard...</p>
+        </div>
       </div>
     )
   }
@@ -154,80 +135,69 @@ export default function PatientDashboard() {
           <p className="text-gray-600">Welcome back! Here&apos;s your health overview</p>
         </div>
 
-        {statsError && (
-          <div className="mb-6 rounded-md bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
-            {statsError}
-          </div>
-        )}
-
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-teal-500">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center">
+              <Stethoscope className="h-8 w-8 text-teal-600" />
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total doctors available</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {discovery.total_doctors_on_platform}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">On the platform</p>
+                <p className="text-2xl font-bold text-gray-900">{discovery.total_doctors_on_platform}</p>
+                <p className="text-xs text-gray-500">On the platform</p>
               </div>
-              <Stethoscope className="w-12 h-12 text-teal-500" />
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-cyan-500">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center">
+              <UserCheck className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Your active doctors</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">
-                  {discovery.your_active_doctors}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">Accepted access requests</p>
+                <p className="text-2xl font-bold text-gray-900">{discovery.your_active_doctors}</p>
+                <p className="text-xs text-gray-500">Approved access</p>
               </div>
-              <UserCheck className="w-12 h-12 text-cyan-500" />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-500">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center">
+              <Pill className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Active Medicines</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.activeMedicines}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.activeMedicines}</p>
               </div>
-              <Pill className="w-12 h-12 text-green-500" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-red-500">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center">
+              <AlertCircle className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Abnormal Values</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.abnormalValues}</p>
-                <p className="text-xs text-gray-500 mt-1">Across all reports</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.abnormalValues}</p>
+                <p className="text-xs text-gray-500">Across all reports</p>
               </div>
-              <AlertCircle className="w-12 h-12 text-red-500" />
             </div>
           </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
-            <div className="flex items-center justify-between">
-              <div>
+          <div className="bg-white p-6 rounded-lg shadow-md">
+            <div className="flex items-center">
+              <FileText className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                <p className="text-3xl font-bold text-gray-900 mt-2">{stats.totalReports}</p>
+                <p className="text-2xl font-bold text-gray-900">{stats.totalReports}</p>
               </div>
-              <FileText className="w-12 h-12 text-blue-500" />
             </div>
           </div>
 
           {profile && profile.bmi && (
-            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-500">
-              <div className="flex items-center justify-between">
-                <div>
+            <div className="bg-white p-6 rounded-lg shadow-md">
+              <div className="flex items-center">
+                <Activity className="h-8 w-8 text-purple-600" />
+                <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">BMI</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {profile.bmi.toFixed(1)}
-                  </p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-2xl font-bold text-gray-900">{profile.bmi.toFixed(1)}</p>
+                  <p className="text-xs text-gray-500">
                     {profile.bmi < 18.5
                       ? 'Underweight'
                       : profile.bmi < 25
@@ -237,40 +207,113 @@ export default function PatientDashboard() {
                       : 'Obese'}
                   </p>
                 </div>
-                <Activity className="w-12 h-12 text-purple-500" />
               </div>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-            <TrendingUp className="w-6 h-6 text-blue-500 mr-2" />
-            Health Summary
-          </h2>
-          {healthChart && (
-            <img src={healthChart} alt="Health Summary" className="w-full rounded-lg" />
-          )}
-          {!healthChart && healthChartError && (
-            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
-              {healthChartError}
-            </p>
-          )}
-        </div>
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Link to="/analytics/health-summary" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg block">
+            <div className="flex items-center">
+              <TrendingUp className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Health Summary</h3>
+                <p className="text-sm text-gray-600">View detailed health insights and trends based on your reports.</p>
+              </div>
+            </div>
+          </Link>
 
+          <Link to="/analytics/correlation" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg block">
+            <div className="flex items-center">
+              <Activity className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Lab Correlation</h3>
+                <p className="text-sm text-gray-600">Analyze relationships between different lab parameters.</p>
+              </div>
+            </div>
+          </Link>
+        </div>
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Lab correlation</h2>
-          {correlationChart && (
-            <img
-              src={correlationChart}
-              alt="Correlation heatmap"
-              className="w-full rounded-lg"
-            />
-          )}
-          {!correlationChart && correlationError && (
-            <p className="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-4 py-3">
-              {correlationError}
-            </p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">
+            Doctor Access Management
+          </h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Doctors can only view your reports, lab values, and notes while access
+            is <span className="font-medium">approved</span>. If you revoke access,
+            they lose visibility immediately.
+          </p>
+
+          {doctorAccessLoading ? (
+            <div className="py-6 text-center text-gray-600">Loading access...</div>
+          ) : doctorAccess.length === 0 ? (
+            <div className="py-8 text-center">
+              <p className="text-gray-600 mb-3">No doctor access requests yet.</p>
+              <Link
+                to="/find-doctors"
+                className="text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Find Doctors
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {doctorAccess.map((row) => {
+                const status = row.status === 'accepted' ? 'approved' : row.status
+                const badgeClass =
+                  status === 'approved'
+                    ? 'bg-green-100 text-green-800'
+                    : status === 'pending'
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : status === 'revoked'
+                    ? 'bg-red-100 text-red-800'
+                    : 'bg-gray-100 text-gray-700'
+
+                return (
+                  <div
+                    key={row.id}
+                    className="flex flex-wrap items-center justify-between gap-3 border border-gray-200 rounded-lg px-4 py-3"
+                  >
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {row.doctor_name || `Doctor #${row.doctor_id}`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Status:{' '}
+                        <span className={`px-2 py-0.5 rounded ${badgeClass}`}>
+                          {status}
+                        </span>
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      {(status === 'approved' || status === 'pending') && (
+                        <button
+                          type="button"
+                          disabled={revokeAccessMutation.isLoading}
+                          onClick={() => handleRevokeAccess(row.id)}
+                          className="px-3 py-1.5 rounded-md text-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                        >
+                          {revokeAccessMutation.isLoading ? 'Revoking...' : 'Revoke'}
+                        </button>
+                      )}
+
+                      {(status === 'rejected' || status === 'revoked') && (
+                        <button
+                          type="button"
+                          disabled={grantAccessMutation.isLoading}
+                          onClick={() => handleGrantAccess(row.doctor_id)}
+                          className="px-3 py-1.5 rounded-md text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                        >
+                          {grantAccessMutation.isLoading
+                            ? 'Requesting...'
+                            : 'Grant Access'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
 
@@ -331,39 +374,41 @@ export default function PatientDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link
-            to="/find-doctors"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
-          >
-            <Stethoscope className="w-8 h-8 text-blue-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Find Doctors</h3>
-            <p className="text-sm text-gray-600">Search by name, category, and specialty</p>
+          <Link to="/find-doctors" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
+            <div className="flex items-center">
+              <Stethoscope className="h-8 w-8 text-blue-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Find Doctors</h3>
+                <p className="text-sm text-gray-600">Search by name, category, and specialty</p>
+              </div>
+            </div>
           </Link>
-          <Link
-            to="/reports"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
-          >
-            <FileText className="w-8 h-8 text-blue-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">View Reports</h3>
-            <p className="text-sm text-gray-600">See all your medical reports and lab results</p>
+          <Link to="/reports" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
+            <div className="flex items-center">
+              <FileText className="h-8 w-8 text-green-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">View Reports</h3>
+                <p className="text-sm text-gray-600">See all your medical reports and lab results</p>
+              </div>
+            </div>
           </Link>
-
-          <Link
-            to="/medicines"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
-          >
-            <Pill className="w-8 h-8 text-blue-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Manage Medicines</h3>
-            <p className="text-sm text-gray-600">Track your current and past medications</p>
+          <Link to="/medicines" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
+            <div className="flex items-center">
+              <Pill className="h-8 w-8 text-purple-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Manage Medicines</h3>
+                <p className="text-sm text-gray-600">Track your current and past medications</p>
+              </div>
+            </div>
           </Link>
-
-          <Link
-            to="/profile"
-            className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow border-2 border-transparent hover:border-blue-500"
-          >
-            <Heart className="w-8 h-8 text-blue-500 mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Update Profile</h3>
-            <p className="text-sm text-gray-600">Keep your health information up to date</p>
+          <Link to="/profile" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
+            <div className="flex items-center">
+              <Heart className="h-8 w-8 text-red-600" />
+              <div className="ml-4">
+                <h3 className="text-lg font-semibold text-gray-900">Update Profile</h3>
+                <p className="text-sm text-gray-600">Keep your health information up to date</p>
+              </div>
+            </div>
           </Link>
         </div>
       </div>
