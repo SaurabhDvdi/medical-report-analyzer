@@ -30,6 +30,7 @@
     "react-loading-skeleton": "^3.5.0",
     "react-quill": "^2.0.0",
     "react-router-dom": "^6.20.0",
+    "recharts": "^3.8.1",
     "tailwind-merge": "^2.1.0"
   },
   "devDependencies": {

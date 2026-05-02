@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Backgroun
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from sqlalchemy import case
+from sqlalchemy import case, distinct
 import uvicorn
 from datetime import datetime
 import os
@@ -56,6 +56,10 @@ from services.ocr_service import OCRService
 from services.nlp_service import NLPService
 from services.analytics_service import AnalyticsService
 from services.report_parser import ReportParser
+from services.normalizer import Normalizer
+from services.extractor import Extractor
+from services.risk_engine import RiskEngine
+from services.insights import InsightsEngine
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -84,6 +88,10 @@ ocr_service = OCRService()
 nlp_service = NLPService()
 analytics_service = AnalyticsService()
 report_parser = ReportParser()
+normalizer = Normalizer()
+extractor = Extractor()
+risk_engine = RiskEngine()
+insights_engine = InsightsEngine()
 
 # Dependency
 def get_db():
@@ -290,8 +298,24 @@ def process_report(report_id: int, file_path: str):
         report.ai_summary = summary
         db.commit()
         
+        # Extract raw data from OCR text
+        extracted_data = extractor.extract(extracted_text.split('\n'))
+        
+        # Normalize data BEFORE parsing (ensures test_description is standardized)
+        normalized_data = normalizer.normalize(extracted_data)
+        
+        # Extract and save report_date from parsed metadata
+        report_info = normalized_data.get("report_info", {})
+        if report_info.get("report_date"):
+            try:
+                from datetime import datetime
+                report.report_date = datetime.fromisoformat(report_info["report_date"]).date()
+                db.commit()
+            except Exception:
+                pass  # Keep report_date as None if parsing fails
+        
         # Parse report and extract structured data
-        parsed_data = report_parser.parse_report(extracted_text, report_id, db)
+        parsed_data = report_parser.parse(normalized_data)
         
         # Update report category
         if parsed_data.get("category"):
@@ -594,10 +618,10 @@ async def get_lab_values(
         query = query.filter(LabValue.parameter_name == parameter_name)
     
     if start_date:
-        query = query.filter(Report.upload_date >= datetime.fromisoformat(start_date))
+        query = query.filter(Report.report_date >= datetime.fromisoformat(start_date).date())
     
     if end_date:
-        query = query.filter(Report.upload_date <= datetime.fromisoformat(end_date))
+        query = query.filter(Report.report_date <= datetime.fromisoformat(end_date).date())
     
     lab_values = query.all()
     
@@ -833,6 +857,98 @@ async def get_correlation_heatmap(
     from fastapi.responses import FileResponse
     return FileResponse(chart_path, media_type="image/png")
 
+# Dashboard Intelligence Endpoint
+@app.get("/api/dashboard")
+async def get_dashboard(
+    parameter: str = None,
+    limit: int = 20,  # Limit to top N parameters by most recent data
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard intelligence: analytics + risk + insights for all parameters.
+    
+    Optional query params:
+    - parameter: if provided, return only that specific parameter
+    - limit: maximum number of parameters to return (default: 20, max: 50)
+    
+    Returns structured JSON with:
+    - user_id: the current user's ID
+    - parameters: array of parameter objects with analytics, risk, and insights
+    """
+    # Cap limit to prevent unbounded queries
+    limit = min(limit, 50)
+    
+    # Get lab values dataframe using existing analytics service method
+    df = analytics_service._get_lab_values_df(
+        current_user["id"],
+        current_user["role"],
+        None,  # start_date
+        None,  # end_date
+        db
+    )
+    
+    # If no data, return empty response
+    if df.empty:
+        return {
+            "user_id": current_user["id"],
+            "parameters": []
+        }
+    
+    # Extract unique parameter names (drop NaN and get unique values)
+    unique_parameters = df["parameter_name"].dropna().unique().tolist()
+    
+    # Filter to specific parameter if requested
+    if parameter:
+        if parameter not in unique_parameters:
+            return {
+                "user_id": current_user["id"],
+                "parameters": []
+            }
+        unique_parameters = [parameter]
+    else:
+        # Sort parameters alphabetically for consistent output
+        unique_parameters = sorted(unique_parameters)
+        
+        # Limit to top N parameters (by occurrence count for now)
+        param_counts = df["parameter_name"].value_counts()
+        limited_params = param_counts.head(limit).index.tolist()
+        # Filter to only include limited params that exist in unique_parameters
+        unique_parameters = [p for p in limited_params if p in unique_parameters]
+    
+    # Build response for each parameter
+    parameters_data = []
+    for param in unique_parameters:
+        # Get analytics for this parameter
+        analytics = analytics_service.get_parameter_analytics(
+            param,
+            current_user["id"],
+            current_user["role"],
+            db
+        )
+        
+        # Skip parameters with no data (empty analytics guard)
+        if not analytics.get("values"):
+            continue
+        
+        # Get risk evaluation
+        risk = risk_engine.evaluate(analytics)
+        
+        # Get insights
+        insights = insights_engine.generate(analytics, risk)
+        
+        parameters_data.append({
+            "parameter": param,
+            "analytics": analytics,
+            "risk": risk,
+            "insights": insights
+        })
+    
+    return {
+        "user_id": current_user["id"],
+        "parameters": parameters_data
+    }
+
 # CSV Export
 @app.get("/api/export/csv")
 async def export_csv(
@@ -865,13 +981,15 @@ async def export_csv(
     writer.writerow(["Parameter", "Value", "Unit", "Reference Range", "Is Abnormal", "Date"])
     
     for lv in lab_values:
+        # Use report_date if available, otherwise fallback to upload_date
+        report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
         writer.writerow([
             lv.parameter_name,
             lv.value,
             lv.unit,
             lv.reference_range,
             lv.is_abnormal,
-            lv.report.upload_date.isoformat()
+            report_date.isoformat() if report_date else None
         ])
     
     return Response(
@@ -1639,6 +1757,98 @@ async def get_patient_details(
             "report_id": lv.report_id
         } for lv in abnormal_values]
     }
+
+# Dashboard endpoint
+@app.get("/api/dashboard")
+async def get_dashboard(
+    parameter: str = None,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get comprehensive dashboard data with analytics, risk, and insights.
+    
+    Optionally filter by parameter name.
+    
+    Returns:
+        {
+            "parameters": [
+                {
+                    "parameter": "HbA1c",
+                    "analytics": {...},
+                    "risk": {...},
+                    "insights": {...}
+                },
+                ...
+            ]
+        }
+    """
+    try:
+        user_id = current_user["user_id"]
+        role = current_user.get("role", "patient")
+
+        # Get unique parameters
+        query = (
+            db.query(distinct(LabValue.parameter_name))
+            .join(Report)
+        )
+
+        if role != "doctor":
+            query = query.filter(Report.user_id == user_id)
+        else:
+            # Doctors can only see lab values for patients with approved access
+            query = (
+                query.join(
+                    PatientDoctorAccess,
+                    PatientDoctorAccess.patient_id == Report.user_id,
+                )
+                .filter(
+                    PatientDoctorAccess.doctor_id == user_id,
+                    PatientDoctorAccess.status.in_(["approved", "accepted"]),
+                )
+            )
+
+        # Filter by parameter if specified
+        if parameter:
+            query = query.filter(LabValue.parameter_name == parameter)
+
+        parameters = [row[0] for row in query.all()]
+
+        if not parameters:
+            return {"parameters": []}
+
+        # For each parameter, get analytics, risk, and insights
+        dashboard_data = []
+
+        for param in parameters:
+            try:
+                # Get analytics
+                analytics = analytics_service.get_parameter_analytics(
+                    param, user_id, role, db
+                )
+
+                # Get risk assessment
+                risk = risk_engine.evaluate(analytics)
+
+                # Get insights
+                insights = insights_engine.generate(analytics, risk)
+
+                dashboard_data.append({
+                    "parameter": param,
+                    "analytics": analytics,
+                    "risk": risk,
+                    "insights": insights,
+                })
+            except Exception as e:
+                # Log error but continue with other parameters
+                print(f"Error processing parameter {param}: {str(e)}")
+                continue
+
+        return {"parameters": dashboard_data}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/api/simulate/{report_id}")
 def simulate_from_report(report_id: int):

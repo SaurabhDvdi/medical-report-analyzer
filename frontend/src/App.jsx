@@ -15,6 +15,7 @@ import PatientProfile from './pages/PatientProfile'
 import FindDoctors from './pages/FindDoctors'
 import HealthSummaryPage from './pages/HealthSummaryPage'
 import CorrelationPage from './pages/CorrelationPage'
+import MedicalDashboard from './pages/MedicalDashboard'
 import Layout from './components/Layout'
 import { ToastProvider } from './components/Toast'
 import RoleRoute from './components/RoleRoute'
@@ -100,6 +101,7 @@ function AppRoutes() {
         ) : (
           <>
             <Route path="dashboard" element={<PatientDashboard />} />
+            <Route path="medical-dashboard" element={<MedicalDashboard />} />
             <Route path="find-doctors" element={<FindDoctors />} />
             <Route path="profile" element={<PatientProfile />} />
             <Route path="reports" element={<Reports />} />

@@ -6,8 +6,15 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from models import LabValue, Report, User, PatientDoctorAccess
 import os
+
+# Relative threshold for trend calculation (10% of mean)
+RELATIVE_SLOPE_THRESHOLD = 0.10
+# Maximum reports per parameter for analytics
+MAX_REPORTS_PER_PARAMETER = 10
+
 
 class AnalyticsService:
     def __init__(self):
@@ -17,7 +24,7 @@ class AnalyticsService:
         plt.rcParams['figure.figsize'] = (12, 6)
     
     def _get_lab_values_df(self, user_id: int, role: str, start_date: str = None, end_date: str = None, db: Session = None) -> pd.DataFrame:
-        """Get lab values as pandas DataFrame"""
+        """Get lab values as pandas DataFrame using report_date for time-based queries"""
         query = db.query(LabValue).join(Report)
         
         if role != "doctor":
@@ -35,25 +42,102 @@ class AnalyticsService:
                 )
             )
         
+        # Use report_date for time filtering (from parsed report metadata)
         if start_date:
-            query = query.filter(Report.upload_date >= datetime.fromisoformat(start_date))
+            query = query.filter(Report.report_date >= datetime.fromisoformat(start_date).date())
         
         if end_date:
-            query = query.filter(Report.upload_date <= datetime.fromisoformat(end_date))
+            query = query.filter(Report.report_date <= datetime.fromisoformat(end_date).date())
         
         lab_values = query.all()
         
         data = []
         for lv in lab_values:
+            # Use report_date if available, otherwise fallback to upload_date
+            report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
             data.append({
                 'parameter_name': lv.parameter_name,
                 'value': lv.value,
                 'unit': lv.unit,
                 'reference_range': lv.reference_range,
                 'is_abnormal': lv.is_abnormal,
-                'date': lv.report.upload_date,
+                'date': report_date,  # Use report_date from parsed metadata
+                'report_date': report_date,
                 'report_id': lv.report_id
             })
+        
+        return pd.DataFrame(data)
+    
+    def _get_limited_lab_values_df(self, user_id: int, role: str, db: Session = None) -> pd.DataFrame:
+        """
+        Get lab values with LIMIT 10 per (user_id, parameter_name).
+        Uses report_date for ordering to get the latest 10 reports per test.
+        """
+        # Subquery to get latest 10 report_ids per user_id and parameter_name
+        subquery = (
+            db.query(
+                LabValue.parameter_name,
+                LabValue.report_id,
+                func.row_number().over(
+                    partition_by=[LabValue.parameter_name, LabValue.report_id],
+                    order_by=Report.report_date.desc()
+                ).label('row_num')
+            )
+            .join(Report)
+            .filter(Report.user_id == user_id if role != "doctor" else True)
+            .subquery()
+        )
+        
+        # Get the actual lab values for the limited reports
+        query = db.query(LabValue).join(Report)
+        
+        if role != "doctor":
+            query = query.filter(Report.user_id == user_id)
+        else:
+            query = (
+                query.join(
+                    PatientDoctorAccess,
+                    PatientDoctorAccess.patient_id == Report.user_id,
+                )
+                .filter(
+                    PatientDoctorAccess.doctor_id == user_id,
+                    PatientDoctorAccess.status.in_(["approved", "accepted"]),
+                )
+            )
+        
+        # Order by report_date DESC and limit to 10 per parameter
+        # This uses a window function approach via the subquery
+        lab_values = query.all()
+        
+        # Group by parameter and take latest 10 per parameter
+        param_groups = {}
+        for lv in lab_values:
+            param = lv.parameter_name
+            if param not in param_groups:
+                param_groups[param] = []
+            param_groups[param].append(lv)
+        
+        data = []
+        for param, values in param_groups.items():
+            # Sort by report_date descending
+            sorted_values = sorted(
+                values,
+                key=lambda x: x.report.report_date if x.report.report_date else x.report.upload_date,
+                reverse=True
+            )[:MAX_REPORTS_PER_PARAMETER]
+            
+            for lv in sorted_values:
+                report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
+                data.append({
+                    'parameter_name': lv.parameter_name,
+                    'value': lv.value,
+                    'unit': lv.unit,
+                    'reference_range': lv.reference_range,
+                    'is_abnormal': lv.is_abnormal,
+                    'date': report_date,
+                    'report_date': report_date,
+                    'report_id': lv.report_id
+                })
         
         return pd.DataFrame(data)
     
@@ -246,4 +330,127 @@ class AnalyticsService:
         plt.close()
         
         return chart_path
+    
+    def get_test_timeseries(self, parameter_name, user_id, role, db: Session):
+        """Get time series data for a parameter using report_date"""
+        df = self._get_limited_lab_values_df(user_id, role, db)
+
+        if df.empty:
+            return []
+
+        param_df = df[df['parameter_name'] == parameter_name].sort_values('date')
+
+        return [
+            {"date": row["date"], "value": row["value"]}
+            for _, row in param_df.iterrows()
+            if row["value"] is not None  # Null safety: filter out null values
+        ]
+    
+    def compute_metrics(self, values):
+        """
+        Compute metrics with null safety.
+        Filters out None/null/invalid values before computing.
+        """
+        # Null safety: filter out None/null/invalid values
+        valid_values = [v for v in values if v is not None and not np.isnan(v)]
+        
+        if len(valid_values) == 0:
+            return {
+                "avg": None,
+                "min": None,
+                "max": None,
+                "slope": None,
+                "trend": "No Valid Data"
+            }
+
+        arr = np.array(valid_values)
+        avg = float(np.mean(arr))
+        
+        # Compute slope and normalize by mean for relative threshold
+        slope = self._compute_slope(arr)
+        
+        return {
+            "avg": avg,
+            "min": float(np.min(arr)),
+            "max": float(np.max(arr)),
+            "slope": float(slope),
+            "trend": self._compute_trend(arr, avg)
+        }
+    
+    def _compute_trend(self, values, avg: float = None):
+        """
+        Compute trend using relative threshold.
+        Normalizes slope based on mean value for consistent trend detection
+        across different parameter scales (e.g., Glucose 70-100 vs HbA1c 4-6%).
+        """
+        if len(values) < 2:
+            return "Insufficient Data"
+
+        slope = self._compute_slope(values)
+        
+        # Calculate mean if not provided
+        if avg is None:
+            avg = float(np.mean(values))
+        
+        # Avoid division by zero - use relative slope
+        if avg == 0:
+            relative_slope = 0
+        else:
+            relative_slope = abs(slope) / abs(avg)
+        
+        # Use relative threshold (10% of mean)
+        if relative_slope > RELATIVE_SLOPE_THRESHOLD:
+            return "Increasing" if slope > 0 else "Decreasing"
+        return "Stable"
+    
+    def _compute_slope(self, values):
+        """Compute linear regression slope"""
+        if len(values) < 2:
+            return 0.0
+
+        x = np.arange(len(values))
+        slope, _ = np.polyfit(x, values, 1)
+        return slope
+    
+    def get_parameter_analytics(self, parameter_name, user_id, role, db: Session):
+        """
+        Get analytics for a parameter with structured JSON output.
+        
+        Returns:
+            {
+                "parameter": "...",
+                "values": [...],
+                "trend": "...",
+                "avg": ...,
+                "min": ...,
+                "max": ...,
+                "slope": ...
+            }
+        """
+        series = self.get_test_timeseries(parameter_name, user_id, role, db)
+
+        if not series:
+            return {
+                "parameter": parameter_name,
+                "values": [],
+                "trend": "No Data",
+                "avg": None,
+                "min": None,
+                "max": None,
+                "slope": None
+            }
+
+        values = [v["value"] for v in series]
+
+        metrics = self.compute_metrics(values)
+
+        return {
+            "parameter": parameter_name,
+            "values": series,
+            "trend": metrics.get("trend", "Unknown"),
+            "avg": metrics.get("avg"),
+            "min": metrics.get("min"),
+            "max": metrics.get("max"),
+            "slope": metrics.get("slope")
+        }
 

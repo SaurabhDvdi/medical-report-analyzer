@@ -104,6 +104,7 @@ class Report(Base):
     file_path = Column(String)
     file_type = Column(String)
     upload_date = Column(DateTime, default=datetime.utcnow)
+    report_date = Column(Date, nullable=True, index=True)  # Date extracted from report metadata
     ocr_status = Column(String, default="pending")  # pending, processing, completed, failed
     extracted_text = Column(Text)
     ai_summary = Column(Text)
