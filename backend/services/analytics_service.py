@@ -454,3 +454,207 @@ class AnalyticsService:
             "slope": metrics.get("slope")
         }
 
+    def get_health_summary_json(self, user_id: int, role: str, db: Session = None) -> dict:
+        """
+        Returns structured health scores per report and per parameter as JSON.
+        Called by GET /api/analytics/health-summary-json
+        """
+        df = self._get_lab_values_df(user_id, role, None, None, db)
+
+        if df.empty:
+            return {
+                "overall_score": None,
+                "reports": [],
+                "parameters": [],
+                "flagged_count": 0,
+                "normal_count": 0,
+            }
+
+        # ── per-report grouping ───────────────────────────────────────────────
+        reports_out = []
+        all_scores = []
+
+        for report_id, group in df.groupby("report_id"):
+            # infer report name from parameter names (e.g. HbA1c → Glycated Haemoglobin)
+            report_name = self._infer_report_name(group["parameter_name"].tolist())
+            report_date = group["report_date"].iloc[0]
+            date_str = report_date.strftime("%d %b %Y") if hasattr(report_date, "strftime") else str(report_date)
+
+            params_out = []
+            for _, row in group.iterrows():
+                score = self._normalize_to_score(
+                    value=row["value"],
+                    reference_range=row["reference_range"],
+                    is_abnormal=row["is_abnormal"],
+                )
+                params_out.append({
+                    "name":        row["parameter_name"],
+                    "value":       row["value"],
+                    "unit":        row["unit"],
+                    "ref_range":   row["reference_range"],
+                    "is_abnormal": bool(row["is_abnormal"]),
+                    "score":       score,
+                    "status":      self._score_to_status(score),
+                })
+
+            param_scores = [p["score"] for p in params_out if p["score"] is not None]
+            report_score = round(sum(param_scores) / len(param_scores)) if param_scores else None
+            all_scores.extend(param_scores)
+
+            reports_out.append({
+                "report_id":   int(report_id),
+                "report_name": report_name,
+                "date":        date_str,
+                "score":       report_score,
+                "parameters":  params_out,
+            })
+
+        # ── flat list for "all reports" bar chart ─────────────────────────────
+        flat_params = [
+            {**p, "report_name": r["report_name"]}
+            for r in reports_out
+            for p in r["parameters"]
+        ]
+
+        overall = round(sum(all_scores) / len(all_scores)) if all_scores else None
+
+        return {
+            "overall_score": overall,
+            "reports":       reports_out,
+            "parameters":    flat_params,
+            "flagged_count": sum(1 for p in flat_params if p["is_abnormal"]),
+            "normal_count":  sum(1 for p in flat_params if not p["is_abnormal"]),
+        }
+
+
+    def get_correlation_json(self, user_id: int, role: str, db: Session = None) -> dict:
+        """
+        Returns the full Pearson correlation matrix + top pairs as JSON.
+        Called by GET /api/analytics/correlation-json
+        """
+        df = self._get_lab_values_df(user_id, role, None, None, db)
+
+        if df.empty:
+            return {"parameters": [], "matrix": [], "pairs": []}
+
+        # Pivot: rows = report_id, columns = parameter_name, values = numeric value
+        pivot = df.pivot_table(
+            index="report_id",
+            columns="parameter_name",
+            values="value",
+            aggfunc="mean",
+        )
+
+        if pivot.shape[1] < 2:
+            return {"parameters": [], "matrix": [], "pairs": []}
+
+        corr = pivot.corr(method="pearson").round(2).fillna(0)
+        params = list(corr.columns)
+
+        # ── flat pair list for the bar chart ─────────────────────────────────
+        pairs = []
+        for i, p1 in enumerate(params):
+            for j, p2 in enumerate(params):
+                if j <= i:
+                    continue
+                val = float(corr.loc[p1, p2])
+                pairs.append({
+                    "param1":    p1,
+                    "param2":    p2,
+                    "label":     f"{p1} & {p2}",
+                    "value":     round(val, 2),
+                    "abs_value": round(abs(val), 2),
+                })
+
+        pairs.sort(key=lambda x: x["abs_value"], reverse=True)
+
+        return {
+            "parameters": params,
+            "matrix":     corr.values.tolist(),   # 2-D list, row/col order = params
+            "pairs":      pairs[:10],              # top 10 for bar chart
+        }
+
+
+    # ── private helpers (add alongside the methods above) ────────────────────
+
+    def _normalize_to_score(self, value, reference_range: str, is_abnormal: bool) -> float:
+        """
+        Converts a single lab value to a 0–100 health score.
+        Tries to parse the reference_range string; falls back to the
+        is_abnormal flag if parsing fails.
+        """
+        try:
+            val = float(str(value).replace(",", "").split()[0])
+            ref = (reference_range or "").strip()
+
+            # Pattern: "13-17" or "13–17" (range)
+            for sep in ("–", "-"):
+                if sep in ref:
+                    parts = ref.split(sep, 1)
+                    lo = float(parts[0].strip())
+                    hi = float(parts[1].strip().split()[0])
+                    if hi == lo:
+                        return 100.0 if val == lo else 50.0
+                    mid  = (lo + hi) / 2.0
+                    half = (hi - lo) / 2.0
+                    dist = abs(val - mid) / half          # 0 at midpoint, 1 at boundary
+                    score = max(0.0, 100.0 - (dist ** 1.4) * 55)
+                    return round(score, 1)
+
+            # Pattern: "< 200" or "<200"
+            if ref.startswith("<"):
+                limit = float(ref.replace("<", "").strip().split()[0])
+                if val <= limit:
+                    ratio = val / limit if limit else 0
+                    return round(100.0 - ratio * 20, 1)   # 80–100 when in range
+                excess = (val - limit) / (limit or 1)
+                return round(max(0.0, 70.0 - excess * 80), 1)
+
+            # Pattern: "> 40" or ">40"
+            if ref.startswith(">"):
+                limit = float(ref.replace(">", "").strip().split()[0])
+                if val >= limit:
+                    ratio = min((val - limit) / (limit or 1), 1)
+                    return round(80.0 + ratio * 20, 1)    # 80–100 when in range
+                deficit = (limit - val) / (limit or 1)
+                return round(max(0.0, 70.0 - deficit * 80), 1)
+
+        except Exception:
+            pass
+
+        # Fallback: use abnormal flag
+        return 42.0 if is_abnormal else 82.0
+
+
+    def _score_to_status(self, score) -> str:
+        if score is None:
+            return "unknown"
+        if score >= 75:
+            return "normal"
+        if score >= 50:
+            return "borderline"
+        return "abnormal"
+
+
+    def _infer_report_name(self, parameter_names: list) -> str:
+        """
+        Guesses a human-readable report category from its parameter names.
+        Falls back to 'Medical report' if nothing matches.
+        """
+        joined = " ".join(parameter_names).lower()
+        if any(k in joined for k in ("hba1c", "hba", "glycat", "a1c")):
+            return "HbA1c"
+        if any(k in joined for k in ("haemoglobin", "hemoglobin", "wbc", "rbc", "platelet", "hematocrit", "mcv", "mch")):
+            return "CBC"
+        if any(k in joined for k in ("ldl", "hdl", "cholesterol", "triglyceride", "vldl", "lipid")):
+            return "Lipid panel"
+        if any(k in joined for k in ("creatinine", "urea", "bun", "gfr", "kidney")):
+            return "Renal function"
+        if any(k in joined for k in ("alt", "ast", "bilirubin", "albumin", "liver", "sgpt", "sgot")):
+            return "Liver function"
+        if any(k in joined for k in ("tsh", "t3", "t4", "thyroid")):
+            return "Thyroid"
+        if any(k in joined for k in ("glucose", "insulin", "fasting")):
+            return "Blood glucose"
+        return "Medical report"
+

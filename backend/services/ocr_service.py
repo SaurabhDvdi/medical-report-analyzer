@@ -31,12 +31,24 @@ class OCRService:
             print(f"OCR Error: {str(e)}")
             return []
 
+    # Download Poppler for Windows:
+    # https://github.com/oschwartz10612/poppler-windows/releases
+    # Extract the zip to C:\poppler
+    # The bin folder should contain pdftoppm.exe
+    # Then update POPPLER_PATH below if you used a different location.
     # -----------------------------
     # PDF HANDLING
     # -----------------------------
     def _extract_from_pdf(self, file_path: str):
         try:
-            images = pdf2image.convert_from_path(file_path, dpi=300)
+            POPPLER_PATH = r"C:\poppler\Library\bin"
+            poppler_path = POPPLER_PATH if os.path.isdir(POPPLER_PATH) else None
+
+            images = pdf2image.convert_from_path(
+                file_path,
+                dpi=300,
+                poppler_path=poppler_path,
+            )
             all_lines = []
 
             for image in images:
@@ -47,8 +59,9 @@ class OCRService:
 
         except Exception as e:
             print(f"PDF OCR Error: {str(e)}")
+            print(f"Expected Poppler at: {POPPLER_PATH}")
+            print(f"Poppler path exists: {os.path.isdir(POPPLER_PATH)}")
             return []
-
     # -----------------------------
     # IMAGE HANDLING
     # -----------------------------

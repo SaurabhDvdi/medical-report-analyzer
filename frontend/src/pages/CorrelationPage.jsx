@@ -1,59 +1,64 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 import api from '../utils/api'
 import { ArrowLeft, Loader, AlertCircle, Activity } from 'lucide-react'
-import { ChartContainer } from '../components/EnhancedCards'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  ReferenceLine,
+  Cell,
+} from 'recharts'
 import { useToast } from '../components/Toast'
+
+// Color scale function for heatmap
+const getCorrelationColor = (value) => {
+  const absValue = Math.abs(value)
+  if (absValue >= 0.7) {
+    // Strong correlation
+    return value > 0 ? '#185FA5' : '#D85A30'
+  }
+  if (absValue >= 0.4) {
+    // Moderate correlation
+    return value > 0 ? '#4A90E2' : '#F07C52'
+  }
+  if (absValue >= 0.15) {
+    // Weak correlation
+    return value > 0 ? '#A8D8FF' : '#F5B8A5'
+  }
+  // Neutral
+  return '#F1EFE8'
+}
 
 export default function CorrelationPage() {
   const navigate = useNavigate()
   const { showToast } = useToast()
-  const [correlationChart, setCorrelationChart] = useState(null)
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(true)
 
-  const fetchCorrelation = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await api.get('/api/analytics/correlation', {
-        responseType: 'blob',
-      })
+  const {
+    data,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['correlationJson'],
+    queryFn: () => api.get('/api/analytics/correlation-json').then((res) => res.data),
+    staleTime: 5 * 60 * 1000,
+  })
 
-      const blob =
-        response.data instanceof Blob
-          ? response.data
-          : new Blob([response.data], { type: 'image/png' })
-      setCorrelationChart(URL.createObjectURL(blob))
-      showToast('Correlation heatmap loaded successfully', 'success')
-    } catch (err) {
-      console.error('Error loading correlation chart:', err)
-      const errorMessage = err.response?.data?.detail ||
-        'Unable to load correlation heatmap. Please try again later.'
-      setError(errorMessage)
-      showToast(errorMessage, 'error')
-    } finally {
-      setLoading(false)
-    }
+  if (error) {
+    showToast('Error loading correlation data: ' + (error?.message || 'Unknown error'), 'error')
   }
 
-useEffect(() => {
-  fetchCorrelation()
-}, [])
-
-useEffect(() => {
-  return () => {
-    if (correlationChart) {
-      URL.revokeObjectURL(correlationChart)
-    }
-  }
-}, [correlationChart])
-
-  return (
-    <div className="px-4 py-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-5xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
+  // Empty state
+  if (!isLoading && (!data?.parameters || data.parameters.length < 2)) {
+    return (
+      <div className="px-4 py-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+        <div className="max-w-6xl mx-auto">
           <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium mb-4"
@@ -65,84 +70,249 @@ useEffect(() => {
             <Activity className="w-8 h-8 text-purple-500" />
             <h1 className="text-3xl font-bold text-gray-900">Lab Correlation</h1>
           </div>
-          <p className="text-gray-600">
-            Analysis of relationships between different laboratory parameters from your medical reports.
-          </p>
+
+          <div className="bg-white rounded-xl shadow-md p-12 text-center mt-8">
+            <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <p className="text-gray-600 mb-4">Insufficient data for correlation analysis</p>
+            <p className="text-sm text-gray-500">
+              Upload multiple medical reports with lab values to see parameter correlations.
+            </p>
+          </div>
         </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 py-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium mb-4"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Back to Dashboard
+        </button>
+
+        <div className="flex items-center gap-3 mb-2">
+          <Activity className="w-8 h-8 text-purple-500" />
+          <h1 className="text-3xl font-bold text-gray-900">Lab Correlation</h1>
+        </div>
+        <p className="text-gray-600 mb-6">
+          Analysis of relationships between laboratory parameters from your medical reports.
+        </p>
 
         {/* Loading State */}
-        {loading && (
+        {isLoading && (
           <div className="bg-white rounded-xl shadow-md p-12 text-center">
             <Loader className="w-8 h-8 text-purple-500 animate-spin mx-auto mb-4" />
-            <p className="text-gray-600">Generating correlation heatmap...</p>
+            <p className="text-gray-600">Loading correlation data...</p>
           </div>
         )}
 
         {/* Error State */}
-        {!loading && error && (
-          <div className="bg-white rounded-xl shadow-md p-8">
+        {error && !isLoading && (
+          <div className="bg-white rounded-xl shadow-md p-8 mb-8">
             <div className="flex items-start gap-4">
               <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0 mt-1" />
               <div>
-                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Correlation</h3>
-                <p className="text-red-700">{error}</p>
-                <p className="text-sm text-gray-600 mt-4">
-                  Possible reasons:
-                </p>
-                <ul className="text-sm text-gray-600 list-disc list-inside mt-2 space-y-1">
-                  <li>Insufficient medical reports with lab data</li>
-                  <li>Reports are still being processed</li>
-                  <li>Not enough parameters to calculate correlations</li>
-                  <li>Server is temporarily unavailable</li>
-                </ul>
+                <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Load Correlation Data</h3>
+                <p className="text-red-700">{error.message}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Success State */}
-        {!loading && correlationChart && (
-          <ChartContainer
-            title="Lab Parameter Correlation"
-            onRefresh={fetchCorrelation}
-            isLoading={false}
-            error={null}
-          >
-            <img
-              src={correlationChart}
-              alt="Lab Parameter Correlation Heatmap"
-              className="w-full rounded-lg border border-gray-200"
-            />
-            <div className="mt-6 pt-6 border-t border-gray-200">
-              <h3 className="font-semibold text-gray-900 mb-2">Understanding the Heatmap</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                This heatmap shows correlations between different laboratory parameters:
-              </p>
-              <ul className="text-sm text-gray-600 space-y-2 list-disc list-inside">
-                <li>
-                  <strong>Colors:</strong> Red indicates positive correlation, blue indicates negative correlation
-                </li>
-                <li>
-                  <strong>Intensity:</strong> Darker colors indicate stronger relationships
-                </li>
-                <li>
-                  <strong>Interpretation:</strong> Strong correlations can highlight how changes in one parameter may relate to changes in another
-                </li>
-              </ul>
-            </div>
-          </ChartContainer>
-        )}
+        {/* Heatmap */}
+        {!isLoading && data?.parameters && data.parameters.length >= 2 && (
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8 overflow-x-auto">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Correlation Matrix</h2>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: `80px repeat(${data.parameters.length}, 1fr)`,
+                gap: '0',
+                border: '1px solid #e5e7eb',
+              }}
+            >
+              {/* Header row */}
+              <div
+                style={{
+                  padding: '12px 8px',
+                  fontWeight: '600',
+                  backgroundColor: '#f3f4f6',
+                  borderRight: '1px solid #e5e7eb',
+                  fontSize: '12px',
+                }}
+              >
+                Param
+              </div>
+              {data.parameters.map((param) => (
+                <div
+                  key={`header-${param}`}
+                  style={{
+                    padding: '12px 8px',
+                    fontWeight: '600',
+                    backgroundColor: '#f3f4f6',
+                    borderRight: '1px solid #e5e7eb',
+                    fontSize: '12px',
+                    writingMode: 'vertical-rl',
+                    textOrientation: 'mixed',
+                    whiteSpace: 'nowrap',
+                    minHeight: '100px',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                  }}
+                >
+                  {param}
+                </div>
+              ))}
 
-        {/* Empty State */}
-        {!loading && !error && !correlationChart && (
-          <div className="bg-white rounded-xl shadow-md p-12 text-center">
-            <Activity className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 mb-4">No correlation data available yet</p>
-            <p className="text-sm text-gray-500">
-              Upload multiple medical reports with lab values to see parameter correlations.
-            </p>
+              {/* Data rows */}
+              {data.parameters.map((rowParam, rowIdx) => (
+                <div key={`row-${rowIdx}`} style={{ display: 'contents' }}>
+                  {/* Row label */}
+                  <div
+                    style={{
+                      padding: '12px 8px',
+                      fontWeight: '600',
+                      backgroundColor: '#f3f4f6',
+                      borderRight: '1px solid #e5e7eb',
+                      borderBottom: '1px solid #e5e7eb',
+                      fontSize: '12px',
+                  display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {rowParam}
+                  </div>
+
+                  {/* Cells */}
+                  {data.parameters.map((colParam, colIdx) => {
+                    const value = data.matrix[rowIdx][colIdx]
+                    return (
+                      <div
+                        key={`cell-${rowIdx}-${colIdx}`}
+                        style={{
+                          padding: '12px 8px',
+                          backgroundColor: getCorrelationColor(value),
+                          borderRight: '1px solid #e5e7eb',
+                          borderBottom: '1px solid #e5e7eb',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          cursor: 'default',
+                          color: Math.abs(value) > 0.5 ? '#fff' : '#000',
+                        }}
+                        title={`${rowParam} ↔ ${colParam}: ${value.toFixed(2)}`}
+                      >
+                        {value.toFixed(2)}
+                      </div>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+
+            {/* Legend */}
+            <div className="mt-6 pt-6 border-t border-gray-200">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Color Scale</h3>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#185FA5',
+                    }}
+                  />
+                  <span>Strong +</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#4A90E2',
+                    }}
+                  />
+                  <span>Moderate +</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#F1EFE8',
+                      border: '1px solid #d1d5db',
+                    }}
+                  />
+                  <span>Neutral</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#F07C52',
+                    }}
+                  />
+                  <span>Moderate −</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      backgroundColor: '#D85A30',
+                    }}
+                  />
+                  <span>Strong −</span>
+                </div>
+              </div>
+            </div>
           </div>
         )}
+
+        {/* Top Pairs Bar Chart */}
+        {!isLoading && data?.pairs && data.pairs.length > 0 && (
+          <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Top Correlations</h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={data.pairs} margin={{ top: 5, right: 30, left: 200, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" domain={[-1, 1]} />
+                <YAxis dataKey="label" type="category" width={190} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <ReferenceLine x={0} stroke="#666" />
+                <Bar dataKey="value" radius={[0, 8, 8, 0]}>
+                  {data.pairs.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={entry.value > 0 ? '#378ADD' : '#D85A30'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        )}
+
+        {/* Refresh Button */}
+        <div className="flex justify-center mb-8">
+          <button
+            onClick={() => refetch()}
+            disabled={isLoading}
+            className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+          >
+            {isLoading ? 'Refreshing...' : 'Refresh Data'}
+          </button>
+        </div>
       </div>
     </div>
   )

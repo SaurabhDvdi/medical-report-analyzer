@@ -40,3 +40,19 @@ Thumbs.db
 .env
 .env.local
 
+# Documentation and temporary files (except README.md)
+ARCHITECTURE.md
+COMPONENT_API_REFERENCE.md
+DASHBOARD_QUICKSTART.md
+DELIVERY_SUMMARY.md
+docs.txt
+DOCUMENTATION_INDEX.md
+IMPLEMENTATION_SUMMARY.md
+MEDICAL_DASHBOARD.md
+MEDICAL_DASHBOARD_README.md
+PROJECT_ANALYSIS.md
+QUICKSTART.md
+start_backend.bat
+start_frontend.bat
+tempCodeRunnerFile.py
+

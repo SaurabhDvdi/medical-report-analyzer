@@ -1,85 +1,43 @@
 import os
-import sqlite3
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
+from typing import Generator
+from dotenv import load_dotenv
+from urllib.parse import quote
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./medical_reports.db"
+# Load environment variables from .env file
+load_dotenv()
+
+DB_USER = os.getenv('DB_USER', 'root')
+DB_PASSWORD = os.getenv('DB_PASSWORD', '')
+DB_HOST = os.getenv('DB_HOST', '127.0.0.1')
+DB_PORT = os.getenv('DB_PORT', '3306')
+DB_NAME = os.getenv('DB_NAME', 'medical_report_analysis')
+
+# URL encode password to handle special characters like @
+ENCODED_PASSWORD = quote(DB_PASSWORD, safe='')
+
+DATABASE_URL = f"mysql+pymysql://{DB_USER}:{ENCODED_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
+    DATABASE_URL,
+    pool_size=10,
+    max_overflow=20,
+    pool_pre_ping=True,
+    echo=False
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+def get_db() -> Generator[Session, None, None]:
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 Base = declarative_base()
 
 
-def ensure_schema_compatibility() -> None:
-    """
-    Ensure SQLite schema is compatible with current SQLAlchemy models.
-
-    This project historically creates tables via `Base.metadata.create_all()`,
-    which will NOT add missing columns to existing SQLite databases. For
-    backwards compatibility we patch known missing columns in-place.
-    """
-    db_file_path = os.path.join(os.path.dirname(__file__), "medical_reports.db")
-    if not os.path.exists(db_file_path):
-        return
-
-    conn = sqlite3.connect(db_file_path)
-    try:
-        cur = conn.cursor()
-
-        # Doctor notes table might exist but miss recently added columns.
-        cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            ("doctor_notes",),
-        )
-        if cur.fetchone() is None:
-            return
-
-        cur.execute("PRAGMA table_info(doctor_notes)")
-        cols = {row[1] for row in cur.fetchall()}
-
-        if "note_type" not in cols:
-            # Match ORM default ("consultation"); allow NULL/backfill using default.
-            cur.execute(
-                "ALTER TABLE doctor_notes ADD COLUMN note_type TEXT DEFAULT 'consultation'"
-            )
-            conn.commit()
-
-        cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            ("users",),
-        )
-        if cur.fetchone() is None:
-            return
-
-        cur.execute("PRAGMA table_info(users)")
-        user_cols = {row[1] for row in cur.fetchall()}
-        if "doctor_category_id" not in user_cols:
-            cur.execute("ALTER TABLE users ADD COLUMN doctor_category_id INTEGER")
-            conn.commit()
-        if "doctor_specialty_id" not in user_cols:
-            cur.execute("ALTER TABLE users ADD COLUMN doctor_specialty_id INTEGER")
-            conn.commit()
-
-        # Patient-doctor access table might exist but miss timestamp columns.
-        cur.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
-            ("patient_doctor_access",),
-        )
-        if cur.fetchone() is not None:
-            cur.execute("PRAGMA table_info(patient_doctor_access)")
-            access_cols = {row[1] for row in cur.fetchall()}
-            if "granted_at" not in access_cols:
-                cur.execute("ALTER TABLE patient_doctor_access ADD COLUMN granted_at TEXT")
-                conn.commit()
-            if "revoked_at" not in access_cols:
-                cur.execute("ALTER TABLE patient_doctor_access ADD COLUMN revoked_at TEXT")
-                conn.commit()
-    finally:
-        conn.close()
 

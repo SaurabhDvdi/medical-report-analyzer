@@ -10,7 +10,6 @@ import bcrypt
 import hashlib
 from services.simulation import simulate
 
-
 # Use bcrypt directly instead of passlib to avoid initialization issues
 def hash_password(password: str) -> str:
     """Hash password using bcrypt"""
@@ -25,7 +24,7 @@ def verify_password(password: str, hashed: str) -> bool:
     hashed_bytes = hashed.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
-from database import SessionLocal, engine, Base, ensure_schema_compatibility
+from database import SessionLocal, engine, Base, get_db
 from models import (
     User,
     Report,
@@ -61,14 +60,8 @@ from services.extractor import Extractor
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
 
-# Create tables
+# Create tables and initialize database
 Base.metadata.create_all(bind=engine)
-ensure_schema_compatibility()
-_seed_db = SessionLocal()
-try:
-    seed_doctor_taxonomy_if_empty(_seed_db)
-finally:
-    _seed_db.close()
 
 app = FastAPI(title="Medical Report Analyzer API", version="1.0.0")
 
@@ -94,15 +87,9 @@ risk_engine = RiskEngine()
 insights_engine = InsightsEngine()
 
 # Dependency
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
-def check_doctor_access(patient_id: int, doctor_id: int, db: Session) -> bool:
+def check_doctor_access(patient_id: int, doctor_id: int, db: Session = Depends(get_db)) -> bool:
     """
     True only when the patient has explicitly approved access for this doctor.
 
@@ -123,7 +110,7 @@ def check_doctor_access(patient_id: int, doctor_id: int, db: Session) -> bool:
     )
 
 
-def require_doctor_access(patient_id: int, doctor_id: int, db: Session) -> None:
+def require_doctor_access(patient_id: int, doctor_id: int, db: Session = Depends(get_db)) -> None:
     if not check_doctor_access(patient_id=patient_id, doctor_id=doctor_id, db=db):
         raise HTTPException(status_code=403, detail="Access not granted")
 
@@ -276,67 +263,155 @@ async def upload_report(
     }
 
 def process_report(report_id: int, file_path: str):
-    """Background task to process report"""
+    """Background task: OCR → NLP → extract → normalise → parse → save LabValues"""
     db = SessionLocal()
+    report = None
+ 
     try:
-        # Update status
         report = db.query(Report).filter(Report.id == report_id).first()
         if not report:
             return
-        
+ 
+        # ── 1. Mark as processing ────────────────────────────────────────────
         report.ocr_status = "processing"
         db.commit()
-        
-        # OCR processing
-        extracted_text = ocr_service.extract_text(file_path)
-        report.extracted_text = extracted_text
-        report.ocr_status = "completed"
+ 
+        # ── 2. OCR ───────────────────────────────────────────────────────────
+        # extract_text() returns List[str] — do NOT call .split() on it
+        lines: list = ocr_service.extract_text(file_path)
+ 
+        # Store as plain text string for the DB column
+        report.extracted_text = "\n".join(lines)
         db.commit()
-        
-        # NLP summarization
-        summary = nlp_service.generate_summary(extracted_text)
-        report.ai_summary = summary
-        db.commit()
-        
-        # Extract raw data from OCR text
-        extracted_data = extractor.extract(extracted_text.split('\n'))
-        
-        # Normalize data BEFORE parsing (ensures test_description is standardized)
+ 
+        # ── 3. NLP summary ───────────────────────────────────────────────────
+        try:
+            summary = nlp_service.generate_summary(lines)
+            report.ai_summary = summary
+            db.commit()
+        except Exception as nlp_err:
+            # NLP failure is non-fatal — continue with extraction
+            print(f"NLP summary failed for report {report_id}: {nlp_err}")
+ 
+        # ── 4. Extract structured data from OCR lines ─────────────────────
+        # extractor.extract() expects List[str] — pass lines directly
+        extracted_data = extractor.extract(lines)
+ 
+        # ── 5. Normalise ─────────────────────────────────────────────────────
         normalized_data = normalizer.normalize(extracted_data)
-        
-        # Extract and save report_date from parsed metadata
+ 
+        # ── 6. Save report_date if found ─────────────────────────────────────
         report_info = normalized_data.get("report_info", {})
         if report_info.get("report_date"):
             try:
-                from datetime import datetime
-                report.report_date = datetime.fromisoformat(report_info["report_date"]).date()
+                report.report_date = datetime.fromisoformat(
+                    report_info["report_date"]
+                ).date()
                 db.commit()
             except Exception:
-                pass  # Keep report_date as None if parsing fails
-        
-        # Parse report and extract structured data
+                pass
+ 
+        # ── 7. Parse into structured lab values ──────────────────────────────
         parsed_data = report_parser.parse(normalized_data)
-        
-        # Update report category
+ 
+        # ── 8. Save report category ───────────────────────────────────────────
         if parsed_data.get("category"):
             category_name = parsed_data["category"]
-            category = db.query(ReportCategory).filter(ReportCategory.name == category_name).first()
+            category = (
+                db.query(ReportCategory)
+                .filter(ReportCategory.name == category_name)
+                .first()
+            )
             if not category:
-                category = ReportCategory(name=category_name, description=f"Auto-detected category: {category_name}")
+                category = ReportCategory(
+                    name=category_name,
+                    description=f"Auto-detected: {category_name}",
+                )
                 db.add(category)
                 db.commit()
             report.category_id = category.id
             db.commit()
-        
+ 
+        # ── 9. Save LabValues ─────────────────────────────────────────────────
+        # parsed_data["lab_values"] is the standard output from report_parser.
+        # Falls back to checking normalized_data and extracted_data so this
+        # works regardless of which service returns the values.
+        lab_value_list = (
+        parsed_data.get("test_results")
+        or parsed_data.get("lab_values")
+        or parsed_data.get("results")
+        or normalized_data.get("raw_tests")
+        or normalized_data.get("lab_values")
+        or extracted_data.get("raw_tests")
+        or []
+    )
+ 
+        # test_results contains panels → each panel has a measurements list
+        SKIP_WORDS = {
+            'name', 'registration on', 'approved on', 'printed on',
+            'process at', 'page', 'good control', 'borderline high',
+            'high', 'low', 'desirable', 'normal', 'optimal'
+        }
+
+        saved_count = 0
+        for panel in lab_value_list:
+            if not isinstance(panel, dict):
+                continue
+            measurements = panel.get('measurements', [])
+            for item in measurements:
+                if not isinstance(item, dict):
+                    continue
+
+                param_name = item.get('test_description')
+                value      = item.get('result')
+                unit       = item.get('unit')
+
+                if not param_name or value is None:
+                    continue
+                if unit is None:                              # skip metadata rows
+                    continue
+                if param_name.lower().strip() in SKIP_WORDS: # skip label rows
+                    continue
+                if len(param_name) > 60:                     # skip long note rows
+                    continue
+
+                status      = item.get('status', 'Unknown')
+                is_abnormal = status.lower() in ('high', 'low', 'abnormal', 'critical')
+
+                lv = LabValue(
+                    report_id       = report_id,
+                    parameter_name  = str(param_name).strip(),
+                    value           = value,
+                    unit            = str(unit).strip(),
+                    reference_range = str(item.get('ref_range') or '').strip(),
+                    is_abnormal     = is_abnormal,
+                )
+                db.add(lv)
+                saved_count += 1
+ 
+        # ── 10. Mark completed ────────────────────────────────────────────────
+        report.ocr_status = "completed"
+        db.commit()
+        print(f"✅ Report {report_id} processed: {saved_count} lab values saved")
+ 
     except Exception as e:
+        print(f"❌ Error processing report {report_id}: {e}")
+        import traceback
+        traceback.print_exc()
+ 
+        # MUST rollback before any further DB operations —
+        # without this the session stays broken and the status
+        # can never be updated, leaving it stuck at "processing"
         try:
-            report = db.query(Report).filter(Report.id == report_id).first()
+            db.rollback()
+            if report is None:
+                report = db.query(Report).filter(Report.id == report_id).first()
             if report:
                 report.ocr_status = "failed"
                 db.commit()
-        except:
-            pass
-        print(f"Error processing report {report_id}: {str(e)}")
+        except Exception as rollback_err:
+            print(f"❌ Could not mark report {report_id} as failed: {rollback_err}")
+ 
     finally:
         db.close()
 
@@ -856,6 +931,27 @@ async def get_correlation_heatmap(
     
     from fastapi.responses import FileResponse
     return FileResponse(chart_path, media_type="image/png")
+
+# JSON Analytics Endpoints
+@app.get("/api/analytics/health-summary-json")
+async def get_health_summary_json(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get health summary data as JSON for Recharts rendering"""
+    return analytics_service.get_health_summary_json(
+        current_user["id"], current_user["role"], db
+    )
+
+@app.get("/api/analytics/correlation-json")
+async def get_correlation_json(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get correlation matrix data as JSON for custom rendering"""
+    return analytics_service.get_correlation_json(
+        current_user["id"], current_user["role"], db
+    )
 
 # Dashboard Intelligence Endpoint
 @app.get("/api/dashboard")
