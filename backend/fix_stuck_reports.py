@@ -1,11 +1,3 @@
-# ─────────────────────────────────────────────────────────────────────────────
-# Run ONCE to fix the 3 stuck reports:
-#   cd backend
-#   python fix_stuck_reports.py
-#
-# This resets their status and reruns the corrected pipeline.
-# ─────────────────────────────────────────────────────────────────────────────
-
 import sys, os, traceback
 POPPLER_PATH = r"C:\poppler\poppler-26.02.0\Library\bin"
 if os.path.isdir(POPPLER_PATH):
