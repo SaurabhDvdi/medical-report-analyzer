@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../utils/api'
-import { Upload, FileText, Trash2, Download, Loader, FileDown } from 'lucide-react'
+import { useAuth } from '../contexts/AuthContext'
+import { Upload, FileText, Trash2, Download, Loader, FileDown, AlertCircle } from 'lucide-react'
 
 export async function downloadLabValuesCsv() {
   const response = await api.get('/api/export/csv', { responseType: 'blob' })
@@ -19,6 +20,8 @@ export async function downloadLabValuesCsv() {
 }
 
 export default function Reports() {
+  const { user } = useAuth()
+  const navigate = useNavigate()
   const [reports, setReports] = useState([])
   const [categories, setCategories] = useState([])
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -30,10 +33,17 @@ export default function Reports() {
   const [exporting, setExporting] = useState(false)
   const pollingRef = useRef(null)
 
+  // Redirect doctors away from reports page
+  useEffect(() => {
+    if (user?.role === 'doctor') {
+      navigate('/dashboard')
+    }
+  }, [user?.role, navigate])
+
   const fetchReports = useCallback(async () => {
     try {
       const response = await api.get('/api/reports')
-      setReports(response.data)
+      setReports(response.data || [])
       setListError('')
     } catch (error) {
       console.error('Error fetching reports:', error)

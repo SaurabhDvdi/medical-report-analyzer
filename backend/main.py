@@ -1805,7 +1805,7 @@ async def get_patient_details(
             "id": patient.id,
             "email": patient.email,
             "full_name": patient.full_name,
-            "created_at": patient.created_at.isoformat()
+            "created_at": patient.created_at.isoformat() if patient.created_at else None
         },
         "profile": {
             "age": profile.age if profile else None,
@@ -1823,7 +1823,7 @@ async def get_patient_details(
         "reports": [{
             "id": r.id,
             "file_name": r.file_name,
-            "upload_date": r.upload_date.isoformat(),
+            "upload_date": r.upload_date.isoformat() if r.upload_date else None,
             "ocr_status": r.ocr_status,
             "ai_summary": r.ai_summary,
             "category": r.category.name if r.category else None
@@ -1841,7 +1841,7 @@ async def get_patient_details(
             "id": n.id,
             "note_text": n.note_text,
             "note_type": n.note_type,
-            "created_at": n.created_at.isoformat(),
+            "created_at": n.created_at.isoformat() if n.created_at else None,
             "report_id": n.report_id
         } for n in notes],
         "abnormal_values": [{

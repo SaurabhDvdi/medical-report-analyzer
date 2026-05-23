@@ -104,8 +104,13 @@ export default function Medicines() {
     }
   }
 
-  const currentMedicines = medicines.filter((m) => m.status === 'current')
-  const pastMedicines = medicines.filter((m) => m.status === 'past')
+  const currentMedicines = medicines.filter(
+  (m) => m.status?.toLowerCase() === 'current'
+  )
+
+  const pastMedicines = medicines.filter(
+    (m) => m.status?.toLowerCase() === 'past'
+  )
 
   if (loading) {
     return <div className="text-center py-12">Loading medicines...</div>

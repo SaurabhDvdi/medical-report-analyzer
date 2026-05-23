@@ -94,9 +94,7 @@ function AppRoutes() {
                 </RoleRoute>
               }
             />
-            <Route path="reports" element={<Reports />} />
-            <Route path="reports/:id" element={<ReportViewer />} />
-            <Route path="medicines" element={<Medicines />} />
+            <Route path="medical-dashboard" element={<MedicalDashboard />} />
           </>
         ) : (
           <>
