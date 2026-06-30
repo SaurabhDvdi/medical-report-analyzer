@@ -12,15 +12,15 @@ from services.simulation import simulate
 
 # Use bcrypt directly instead of passlib to avoid initialization issues
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
-    password_bytes = password.encode('utf-8')[:72]  # bcrypt 72 byte limit
+    # Bcrypt truncates at 72 bytes; enforce it explicitly
+    password_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
     hashed = bcrypt.hashpw(password_bytes, salt)
     return hashed.decode('utf-8')
 
 def verify_password(password: str, hashed: str) -> bool:
-    """Verify password against hash"""
-    password_bytes = password.encode('utf-8')[:72]  # bcrypt 72 byte limit
+    # Bcrypt truncates at 72 bytes; enforce it explicitly
+    password_bytes = password.encode('utf-8')[:72]
     hashed_bytes = hashed.encode('utf-8')
     return bcrypt.checkpw(password_bytes, hashed_bytes)
 
@@ -60,12 +60,10 @@ from services.extractor import Extractor
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
 
-# Create tables and initialize database
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Medical Report Analyzer API", version="1.0.0")
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:5173"],
@@ -75,8 +73,6 @@ app.add_middleware(
 )
 
 security = HTTPBearer()
-
-# Initialize services
 ocr_service = OCRService()
 nlp_service = NLPService()
 analytics_service = AnalyticsService()
@@ -90,13 +86,8 @@ insights_engine = InsightsEngine()
 
 
 def check_doctor_access(patient_id: int, doctor_id: int, db: Session = Depends(get_db)) -> bool:
-    """
-    True only when the patient has explicitly approved access for this doctor.
-
-    Backward-compat:
-    - Older rows may use status='accepted' (pre-renaming). Treat it as approved.
-    - 'revoked' never counts as approved.
-    """
+    # Only approved patients grant access; 'accepted' is legacy and counts as approved
+    # 'revoked' always denies access
     allowed_statuses = ["approved", "accepted"]
     return (
         db.query(PatientDoctorAccess.id)

@@ -15,13 +15,8 @@ class OCRService:
             self.use_easyocr = False
             print("EasyOCR not available, using Tesseract")
 
-    # -----------------------------
-    # PUBLIC METHOD
-    # -----------------------------
     def extract_text(self, file_path: str):
-        """
-        Returns: List[str] → structured lines
-        """
+        # Returns list of text lines from PDF or image
         try:
             if file_path.lower().endswith('.pdf'):
                 return self._extract_from_pdf(file_path)
@@ -31,15 +26,9 @@ class OCRService:
             print(f"OCR Error: {str(e)}")
             return []
 
-    # Download Poppler for Windows:
-    # https://github.com/oschwartz10612/poppler-windows/releases
-    # Extract the zip to C:\poppler
-    # The bin folder should contain pdftoppm.exe
-    # Then update POPPLER_PATH below if you used a different location.
-    # -----------------------------
-    # PDF HANDLING
-    # -----------------------------
     def _extract_from_pdf(self, file_path: str):
+        # Requires Poppler (C:\poppler\Library\bin on Windows)
+        # See README for installation instructions
         try:
             POPPLER_PATH = r"C:\poppler\Library\bin"
             poppler_path = POPPLER_PATH if os.path.isdir(POPPLER_PATH) else None
@@ -59,12 +48,8 @@ class OCRService:
 
         except Exception as e:
             print(f"PDF OCR Error: {str(e)}")
-            print(f"Expected Poppler at: {POPPLER_PATH}")
-            print(f"Poppler path exists: {os.path.isdir(POPPLER_PATH)}")
             return []
-    # -----------------------------
-    # IMAGE HANDLING
-    # -----------------------------
+
     def _extract_from_image(self, file_path: str):
         try:
             image = Image.open(file_path)
@@ -82,23 +67,17 @@ class OCRService:
         else:
             return self._tesseract_lines(image)
 
-    # -----------------------------
-    # EASYOCR (STRUCTURED OUTPUT)
-    # -----------------------------
     def _easyocr_lines(self, image):
         results = self.easyocr_reader.readtext(np.array(image))
 
-        # Filter low-confidence noise
+        # Filter low-confidence detections and sort by vertical position
         results = [r for r in results if r[2] > 0.4]
-
-        # Sort by vertical position (top to bottom)
         results.sort(key=lambda x: min([pt[1] for pt in x[0]]))
 
         lines = []
         current_line = []
         current_y = None
-
-        threshold = 15  # vertical grouping tolerance
+        threshold = 15  # pixels; group text on same line
 
         for bbox, text, conf in results:
             y = min([pt[1] for pt in bbox])
@@ -106,16 +85,13 @@ class OCRService:
             if current_y is None:
                 current_y = y
 
-            # Same line grouping
             if abs(y - current_y) < threshold:
                 current_line.append((bbox, text))
             else:
-                # finalize previous line
                 lines.append(self._merge_line(current_line))
                 current_line = [(bbox, text)]
                 current_y = y
 
-        # last line
         if current_line:
             lines.append(self._merge_line(current_line))
 

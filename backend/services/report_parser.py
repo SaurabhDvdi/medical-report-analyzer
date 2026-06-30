@@ -5,17 +5,8 @@ class ReportParser:
     def __init__(self):
         pass
 
-    # ----------------------------------
-    # PUBLIC METHOD
-    # ----------------------------------
     def parse(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Input:
-            extracted_data from extractor.py
-
-        Output:
-            Final structured JSON (your schema)
-        """
+        # Convert extracted raw data into structured panels with measurements
 
         report_info = extracted_data.get("report_info", {})
         raw_tests = extracted_data.get("raw_tests", [])
@@ -39,10 +30,8 @@ class ReportParser:
 
         return structured
 
-    # ----------------------------------
-    # BUILD MEASUREMENT
-    # ----------------------------------
     def _build_measurement(self, test: Dict[str, Any]) -> Dict[str, Any]:
+        # Convert raw test data into measurement with computed status
         return {
             "test_description": test.get("test_description"),
             "result": test.get("result"),
@@ -51,10 +40,8 @@ class ReportParser:
             "status": self._compute_status(test)
         }
 
-    # ----------------------------------
-    # STATUS CALCULATION
-    # ----------------------------------
     def _compute_status(self, test: Dict[str, Any]) -> str:
+        # Determine if value is Normal, Low, or High based on reference range
         value = test.get("result")
         ref = test.get("ref_range")
 
@@ -79,10 +66,8 @@ class ReportParser:
         except:
             return "Unknown"
 
-    # ----------------------------------
-    # CATEGORY DETECTION
-    # ----------------------------------
     def _detect_category(self, tests: List[Dict[str, Any]]) -> str:
+        # Auto-detect report type (DIABETES, LIPID_PROFILE, etc.) based on test names
         names = " ".join([t.get("test_description", "").lower() for t in tests])
 
         if "hba1c" in names or "glucose" in names:

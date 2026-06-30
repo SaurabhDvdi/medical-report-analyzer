@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from database import SessionLocal
 from models import User
 
-SECRET_KEY = "your-secret-key-change-in-production"  # Change this in production!
+SECRET_KEY = "your-secret-key-change-in-production"  # TODO: Move to environment variable
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

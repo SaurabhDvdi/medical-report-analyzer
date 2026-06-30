@@ -3,18 +3,16 @@ from typing import Optional
 
 class NLPService:
     def __init__(self):
-        # Initialize summarization model
         try:
-            # Use a smaller model for local processing
             self.summarizer = pipeline(
                 "summarization",
                 model="facebook/bart-large-cnn",
-                device=-1  # CPU
+                device=-1
             )
         except Exception as e:
             print(f"Error loading BART model: {str(e)}")
             try:
-                # Fallback to T5
+                # Fallback to T5 if BART unavailable
                 self.summarizer = pipeline(
                     "summarization",
                     model="t5-small",
@@ -25,12 +23,7 @@ class NLPService:
                 self.summarizer = None
     
     def generate_summary(self, text, max_length: int = 150, min_length: int = 50) -> str:
-        """Generate AI summary of medical report text
-        
-        Args:
-            text: Either str or List[str] — if list, joins with spaces first
-        """
-        # Accept List[str] or str
+        # Accepts str or List[str] (joins list with spaces)
         if isinstance(text, list):
             text = " ".join(str(item) for item in text)
         
@@ -38,16 +31,11 @@ class NLPService:
         if not text:
             return ""
         
-        # Try transformer pipeline first
+        # Level 1: Transformer model (BART/T5)
         if self.summarizer is not None:
             try:
-                # Truncate text if too long (models have token limits)
-                max_input_length = 1024
-                if len(text) > max_input_length:
-                    text_truncated = text[:max_input_length]
-                else:
-                    text_truncated = text
-                
+                # Truncate to 1024 chars (model token limit)
+                text_truncated = text[:1024]
                 summary = self.summarizer(
                     text_truncated,
                     max_length=max_length,
@@ -58,7 +46,7 @@ class NLPService:
             except Exception as e:
                 print(f"Transformer summarization failed: {str(e)}")
         
-        # Fallback: extractive summary — first 3 sentences > 20 chars
+        # Level 2: Extract first 3 sentences (fallback if model fails)
         try:
             import re
             sentences = re.split(r'[.!?]+', text)
@@ -68,6 +56,6 @@ class NLPService:
         except Exception as e:
             print(f"Extractive summary failed: {str(e)}")
         
-        # Last resort: return first 300 characters
+        # Level 3: Return first 300 chars if all else fails
         return text[:300]
 

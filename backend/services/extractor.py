@@ -6,14 +6,8 @@ class Extractor:
     def __init__(self):
         pass
 
-    # ----------------------------------
-    # PUBLIC METHOD
-    # ----------------------------------
     def extract(self, lines: List[str]) -> Dict[str, Any]:
-        """
-        Input: OCR lines
-        Output: Intermediate structured data
-        """
+        # Parse OCR lines into report_info (metadata) and raw_tests (measurements)
         data = {
             "report_info": {},
             "raw_tests": []
@@ -35,10 +29,8 @@ class Extractor:
 
         return data
 
-    # ----------------------------------
-    # METADATA EXTRACTION
-    # ----------------------------------
     def _extract_metadata(self, line: str) -> Dict[str, Any]:
+        # Extract patient info (name, age, gender, dates, IDs) if line matches patterns
         patterns = {
             "patient_name": r"(Name|Patient Name)\s*[:\-]\s*(.+)",
             "age": r"Age\s*[:\-]\s*(\d+)",
@@ -58,19 +50,8 @@ class Extractor:
 
         return extracted
 
-    # ----------------------------------
-    # TEST EXTRACTION (CORE)
-    # ----------------------------------
     def _extract_test(self, line: str) -> Dict[str, Any]:
-        """
-        Extract:
-        test_name | value | unit | reference range
-        """
-
-        # Pattern handles:
-        # HbA1c 6.5 %
-        # MCV 80 fL 81-101
-        # Platelet Count 300000 /cumm 150000-410000
+        # Extract lab value: test_name value unit ref_range
 
         pattern = r"""
             ^([A-Za-z0-9\s\-\(\)%]+?)      # test name
@@ -96,10 +77,8 @@ class Extractor:
             "ref_range": ref
         }
 
-    # ----------------------------------
-    # SAFE FLOAT CONVERSION
-    # ----------------------------------
     def _safe_float(self, value):
+        # Try to convert to float; return None if invalid
         try:
             return float(value)
         except:
