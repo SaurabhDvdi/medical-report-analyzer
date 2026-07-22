@@ -1,6 +1,9 @@
 import re
 from typing import Dict, Any, List
 from difflib import get_close_matches
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class Normalizer:

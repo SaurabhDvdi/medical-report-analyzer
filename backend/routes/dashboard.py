@@ -7,6 +7,9 @@ from auth import get_current_user
 from services.analytics_service import AnalyticsService
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 

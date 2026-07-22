@@ -1,5 +1,8 @@
 from transformers import pipeline
 from typing import Optional
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 class NLPService:
     def __init__(self):

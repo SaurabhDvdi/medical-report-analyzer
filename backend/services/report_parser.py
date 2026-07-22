@@ -1,4 +1,7 @@
 from typing import Dict, List, Any
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 
 class ReportParser:

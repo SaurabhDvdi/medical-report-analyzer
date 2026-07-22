@@ -5,6 +5,9 @@ from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
 from dotenv import load_dotenv
 from urllib.parse import quote
+from logging_config import get_logger
+
+logger = get_logger(__name__)
 
 load_dotenv()
 

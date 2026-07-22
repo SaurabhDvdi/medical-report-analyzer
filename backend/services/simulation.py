@@ -1,4 +1,7 @@
 import math
+from logging_config import get_logger 
+
+logger = get_logger(__name__)
 
 def calculate_velocity(flow_rate, diameter):
     area = math.pi * (diameter/2)**2

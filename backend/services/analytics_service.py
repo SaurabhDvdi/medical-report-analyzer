@@ -8,7 +8,10 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from models import LabValue, Report, User, PatientDoctorAccess
+from logging_config import get_logger
 import os
+
+logger = get_logger(__name__)
 
 # Relative threshold for trend calculation (10% of mean)
 RELATIVE_SLOPE_THRESHOLD = 0.10

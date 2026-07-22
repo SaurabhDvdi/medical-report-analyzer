@@ -7,12 +7,10 @@ python-multipart
 pydantic[email]
 pymysql
 python-dotenv
-
 pytesseract
 easyocr
 pdf2image
 Pillow
-
 transformers
 torch
 pandas
@@ -20,3 +18,4 @@ numpy
 scikit-learn
 matplotlib
 seaborn
+logging

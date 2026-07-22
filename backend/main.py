@@ -4,11 +4,12 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from sqlalchemy import case, distinct
 import uvicorn
-from datetime import datetime
+from datetime import datetime, UTC
 import os
 import bcrypt
 import hashlib
 from services.simulation import simulate
+from logging_config import get_logger
 
 # Use bcrypt directly instead of passlib to avoid initialization issues
 def hash_password(password: str) -> str:
@@ -60,13 +61,15 @@ from services.extractor import Extractor
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
 
+logger = get_logger(__name__)
+
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Medical Report Analyzer API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:5173"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -113,8 +116,10 @@ os.makedirs("charts", exist_ok=True)
 # Authentication endpoints
 @app.post("/api/auth/register", response_model=dict)
 async def register(user_data: UserCreate, db: Session = Depends(get_db)):
+    logger.info(f"Registration attempt for email: {user_data.email}")
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
+        logger.warning(f"Registration failed: Email {user_data.email} already registered")
         raise HTTPException(status_code=400, detail="Email already registered")
 
     password_hash = hash_password(user_data.password)
@@ -194,8 +199,10 @@ async def register(user_data: UserCreate, db: Session = Depends(get_db)):
 
 @app.post("/api/auth/login", response_model=dict)
 async def login(credentials: UserLogin, db: Session = Depends(get_db)):
+    logger.info(f"Login attempt for email: {credentials.email}")
     user = db.query(User).filter(User.email == credentials.email).first()
     if not user or not verify_password(credentials.password, user.password_hash):
+        logger.warning(f"Login failed: Invalid credentials for {credentials.email}")
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     access_token = create_access_token(data={"sub": user.email, "role": user.role})
@@ -244,6 +251,7 @@ async def upload_report(
     db.refresh(report)
 
     # 6. Background processing
+    logger.info(f"Report {report.id} uploaded by user {current_user['id']}: {safe_filename}")
     background_tasks.add_task(process_report, report.id, file_path)
 
     return {
@@ -264,6 +272,7 @@ def process_report(report_id: int, file_path: str):
             return
  
         # ── 1. Mark as processing ────────────────────────────────────────────
+        logger.debug(f"Processing report {report_id}: Starting OCR")
         report.ocr_status = "processing"
         db.commit()
  
@@ -383,12 +392,10 @@ def process_report(report_id: int, file_path: str):
         # ── 10. Mark completed ────────────────────────────────────────────────
         report.ocr_status = "completed"
         db.commit()
-        print(f"✅ Report {report_id} processed: {saved_count} lab values saved")
+        logger.info(f"Report {report_id} successfully processed: {saved_count} lab values saved")
  
     except Exception as e:
-        print(f"❌ Error processing report {report_id}: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"Error processing report {report_id}: {e}", exc_info=True)
  
         # MUST rollback before any further DB operations —
         # without this the session stays broken and the status
@@ -401,7 +408,7 @@ def process_report(report_id: int, file_path: str):
                 report.ocr_status = "failed"
                 db.commit()
         except Exception as rollback_err:
-            print(f"❌ Could not mark report {report_id} as failed: {rollback_err}")
+            logger.error(f"Could not mark report {report_id} as failed: {rollback_err}", exc_info=True)
  
     finally:
         db.close()
@@ -577,9 +584,11 @@ async def delete_report(
     current_user: dict = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    logger.info(f"Delete report request: report_id={report_id}, user_id={current_user['id']}")
     report = db.query(Report).filter(Report.id == report_id).first()
 
     if not report:
+        logger.warning(f"Delete failed: Report {report_id} not found")
         raise HTTPException(status_code=404, detail="Report not found")
 
     # --- Strict Ownership Check ---
@@ -1284,7 +1293,7 @@ async def request_doctor_access(
         if row.status in ["rejected", "revoked"]:
             row.status = "pending"
             row.revoked_at = None
-        row.updated_at = datetime.utcnow()
+        row.updated_at = datetime.now(UTC)
     else:
         row = PatientDoctorAccess(
             patient_id=current_user["id"],
@@ -1372,9 +1381,9 @@ async def accept_patient_access_request(
     if row.status != "pending":
         raise HTTPException(status_code=400, detail="Request is not pending")
     row.status = "approved"
-    row.granted_at = datetime.utcnow()
+    row.granted_at = datetime.now(UTC)
     row.revoked_at = None
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(UTC)
     db.commit()
     return {"id": row.id, "status": row.status}
 
@@ -1400,7 +1409,7 @@ async def reject_patient_access_request(
     if row.status != "pending":
         raise HTTPException(status_code=400, detail="Request is not pending")
     row.status = "rejected"
-    row.updated_at = datetime.utcnow()
+    row.updated_at = datetime.now(UTC)
     db.commit()
     return {"id": row.id, "status": row.status}
 
@@ -1427,8 +1436,8 @@ async def revoke_patient_doctor_access(
         raise HTTPException(status_code=404, detail="Access request not found")
 
     row.status = "revoked"
-    row.revoked_at = datetime.utcnow()
-    row.updated_at = datetime.utcnow()
+    row.revoked_at = datetime.now(UTC)
+    row.updated_at = datetime.now(UTC)
     db.commit()
     return {"id": row.id, "status": row.status}
 
@@ -1696,14 +1705,14 @@ async def get_doctor_statistics(
     total_patients = db.query(User).filter(User.role == "patient").count()
     
     # Recent patients (last 7 days)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    seven_days_ago = datetime.now(UTC) - timedelta(days=7)
     recent_patients = db.query(User).filter(
         User.role == "patient",
         User.created_at >= seven_days_ago
     ).count()
     
     # Total consultations (notes) this week
-    week_start = datetime.utcnow() - timedelta(days=7)
+    week_start = datetime.now(UTC) - timedelta(days=7)
     weekly_consultations = db.query(DoctorNote).filter(
         DoctorNote.doctor_id == current_user["id"],
         DoctorNote.created_at >= week_start
@@ -1871,8 +1880,9 @@ async def get_dashboard(
         }
     """
     try:
-        user_id = current_user["user_id"]
+        user_id = current_user["id"]
         role = current_user.get("role", "patient")
+        logger.info(f"Dashboard request from user {user_id} (role: {role})")
 
         # Get unique parameters
         query = (
@@ -1938,25 +1948,40 @@ async def get_dashboard(
 
 
 @app.get("/api/simulate/{report_id}")
-def simulate_from_report(report_id: int):
+def simulate_from_report(report_id: int, db: Session = Depends(get_db)):
+    logger.info(f"Simulation requested for report {report_id}")
     
     # 🔹 Fetch report data (OCR extracted values)
-    report = get_report_from_db(report_id)
-
-    # Example extracted values
-    cholesterol = report.get("cholesterol", 200)
-    bp = report.get("blood_pressure", 120)
-
-    # Convert to blockage (simple logic)
-    blockage = min((cholesterol / 300) * 100, 90)
-
-    result = simulate(blockage)
-
-    return {
-        "blockage": blockage,
-        **result
-    }
+    try:
+        report = db.query(Report).filter(Report.id == report_id).first()
+        if not report:
+            logger.warning(f"Simulation failed: Report {report_id} not found")
+            raise HTTPException(status_code=404, detail="Report not found")
+        
+        # Get lab values from report
+        lab_values = db.query(LabValue).filter(LabValue.report_id == report_id).all()
+        
+        # Example extracted values (with defaults)
+        cholesterol = next((lv.value for lv in lab_values if "cholesterol" in lv.parameter_name.lower()), 200)
+        bp = next((lv.value for lv in lab_values if "blood pressure" in lv.parameter_name.lower()), 120)
+        
+        # Convert to blockage (simple logic)
+        blockage = min((cholesterol / 300) * 100, 90)
+        
+        result = simulate(blockage)
+        logger.info(f"Simulation completed for report {report_id}: blockage={blockage}%")
+        
+        return {
+            "blockage": blockage,
+            **result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Simulation error for report {report_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Simulation failed")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    logger.info("Starting Medical Report Analyzer API on http://localhost:8000")
+    uvicorn.run(app, host="localhost", port=8000)
 
