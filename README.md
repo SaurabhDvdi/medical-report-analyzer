@@ -48,10 +48,10 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
   - `get_my_patients`, `search_my_patients`, `resolve_my_patient`, `get_my_patient_count`
   - `get_my_doctors`, `get_my_reports`, `get_my_medicines`, `get_website_help`
 
-### 📄 3. Document Processing Pipeline (OCR & NLP)
+### 📄 3. Document Processing Pipeline (OCR & AI Ingestion)
 - **Multi-Engine OCR:** Automatic text extraction from PDF and image files using PyTesseract and EasyOCR with Poppler fallback.
 - **Structured Lab Extraction:** Automated normalization of lab parameters, units, reference ranges, and abnormal value flag assignment (`is_abnormal`).
-- **NLP Summarization:** Hugging Face Transformers (`facebook/bart-large-cnn`, `t5-small`) or LLM integration to generate clinical summaries of extracted text.
+- **AI Clinical Summarization:** Integrated `LLMService` (Ollama/Groq) generating concise clinical summaries of extracted document text during ingestion.
 
 ### 📈 4. Advanced Health Analytics & Report Comparison
 - **Linear Regression Trends:** Time-series tracking of lab parameter trajectory over multiple report dates.
@@ -153,20 +153,17 @@ medical-report-analyzer/
 │   │
 │   ├── routes/                    # API Router Modules
 │   │   ├── ai_routes.py           # /api/ai/chat and /api/ai/compare-reports endpoints
-│   │   ├── dashboard.py           # Dashboard data endpoints
-│   │   ├── upload.py              # Report file upload endpoints
-│   │   └── analytics.py           # Advanced analytics endpoints
+│   │   └── dashboard.py           # Dashboard data endpoints
 │   │
 │   ├── services/                  # Business Logic & Analytics Services
 │   │   ├── ocr_service.py         # Multi-engine OCR text extraction
-│   │   ├── nlp_service.py         # Medical document summarization
 │   │   ├── report_parser.py       # Regex & pattern report parser
 │   │   ├── normalizer.py          # Unit & range normalization
 │   │   ├── extractor.py           # Lab value extraction logic
 │   │   ├── analytics_service.py   # Trend analysis & correlation matrix generation
 │   │   ├── comparison_service.py  # Report comparison & delta calculation engine
 │   │   ├── risk_engine.py         # Health risk evaluation engine
-│   │   ├── insights.py            # Clinical insights generation engine
+│   │   ├── insights.py            # Structured clinical observations engine
 │   │   └── doctor_taxonomy_seed.py# Specialty taxonomy database seeder
 │   │
 │   └── tests/                     # Automated Test Suite

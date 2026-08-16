@@ -8,7 +8,6 @@ from datetime import datetime, UTC
 import os
 import bcrypt
 import hashlib
-from services.simulation import simulate
 from logging_config import get_logger
 
 # Use bcrypt directly instead of passlib to avoid initialization issues
@@ -53,13 +52,13 @@ from schemas import (
 from services.doctor_taxonomy_seed import seed_doctor_taxonomy_if_empty
 from auth import create_access_token, verify_token, get_current_user
 from services.ocr_service import OCRService
-from services.nlp_service import NLPService
 from services.analytics_service import AnalyticsService
 from services.report_parser import ReportParser
 from services.normalizer import Normalizer
 from services.extractor import Extractor
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
+from ai.llm_service import LLMService
 
 from routes.ai_routes import router as ai_router
 
@@ -82,7 +81,7 @@ app.add_middleware(
 
 security = HTTPBearer()
 ocr_service = OCRService()
-nlp_service = NLPService()
+llm_service = LLMService()
 analytics_service = AnalyticsService()
 report_parser = ReportParser()
 normalizer = Normalizer()
@@ -289,14 +288,22 @@ def process_report(report_id: int, file_path: str):
         report.extracted_text = "\n".join(lines)
         db.commit()
  
-        # ── 3. NLP summary ───────────────────────────────────────────────────
+        # ── 3. AI Clinical Summary ─────────────────────────────────────────────
         try:
-            summary = nlp_service.generate_summary(lines)
-            report.ai_summary = summary
+            sample_text = "\n".join(lines[:40])
+            summary_res = llm_service.generate_response(
+                prompt=f"Summarize the key medical findings and lab results in 2-3 clinical sentences:\n\n{sample_text}",
+                system_prompt="You are a concise medical document summarizer."
+            )
+            summary_text = summary_res.get("text", "")
+            if not summary_text or "Error:" in summary_text:
+                summary_text = "\n".join([line for line in lines if len(line.strip()) > 15][:3])
+            report.ai_summary = summary_text
             db.commit()
-        except Exception as nlp_err:
-            # NLP failure is non-fatal — continue with extraction
-            print(f"NLP summary failed for report {report_id}: {nlp_err}")
+        except Exception as summary_err:
+            logger.warning(f"AI summary failed for report {report_id}: {summary_err}")
+            report.ai_summary = "\n".join([line for line in lines if len(line.strip()) > 15][:3])
+            db.commit()
  
         # ── 4. Extract structured data from OCR lines ─────────────────────
         # extractor.extract() expects List[str] — pass lines directly
@@ -1951,40 +1958,6 @@ async def get_dashboard(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/api/simulate/{report_id}")
-def simulate_from_report(report_id: int, db: Session = Depends(get_db)):
-    logger.info(f"Simulation requested for report {report_id}")
-    
-    # 🔹 Fetch report data (OCR extracted values)
-    try:
-        report = db.query(Report).filter(Report.id == report_id).first()
-        if not report:
-            logger.warning(f"Simulation failed: Report {report_id} not found")
-            raise HTTPException(status_code=404, detail="Report not found")
-        
-        # Get lab values from report
-        lab_values = db.query(LabValue).filter(LabValue.report_id == report_id).all()
-        
-        # Example extracted values (with defaults)
-        cholesterol = next((lv.value for lv in lab_values if "cholesterol" in lv.parameter_name.lower()), 200)
-        bp = next((lv.value for lv in lab_values if "blood pressure" in lv.parameter_name.lower()), 120)
-        
-        # Convert to blockage (simple logic)
-        blockage = min((cholesterol / 300) * 100, 90)
-        
-        result = simulate(blockage)
-        logger.info(f"Simulation completed for report {report_id}: blockage={blockage}%")
-        
-        return {
-            "blockage": blockage,
-            **result
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Simulation error for report {report_id}: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail="Simulation failed")
 
 if __name__ == "__main__":
     logger.info("Starting Medical Report Analyzer API on http://localhost:8000")

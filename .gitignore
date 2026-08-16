@@ -68,3 +68,9 @@ MEDICAL_DASHBOARD.md
 PROJECT_ANALYSIS.md
 QUICKSTART.md
 tempCodeRunnerFile.py
+
+# Logs
+logs/
+backend/logs/
+*.log
+*.log.*

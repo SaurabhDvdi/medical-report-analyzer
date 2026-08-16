@@ -5,97 +5,48 @@ logger = get_logger(__name__)
 
 
 class InsightsEngine:
+    """Engine providing structured clinical observation signals based on analytics and risk metrics."""
+
     def __init__(self):
         pass
 
-    # ----------------------------------
-    # PUBLIC METHOD
-    # ----------------------------------
     def generate(self, analytics: Dict[str, Any], risk: Dict[str, Any]) -> Dict[str, Any]:
-        parameter = analytics.get("parameter")
-        trend = analytics.get("trend")
+        """
+        Generate structured clinical insights.
+        """
+        parameter = analytics.get("parameter", "Unknown")
+        trend = analytics.get("trend", "Unknown")
         values = analytics.get("values", [])
-        risk_level = risk.get("risk_level")
+        risk_level = risk.get("risk_level", "UNKNOWN")
 
         if not values:
             return self._no_data(parameter)
 
-        latest = values[-1]["value"]
+        latest_val = values[-1].get("value")
+        first_val = values[0].get("value") if len(values) > 1 else latest_val
+        delta = round(latest_val - first_val, 2) if (latest_val is not None and first_val is not None) else 0.0
 
         return {
             "parameter": parameter,
-            "summary": self._build_summary(parameter, trend, risk_level, latest),
-            "trend_insight": self._trend_insight(trend, values),
-            "risk_insight": self._risk_insight(risk_level),
-            "recommendation": self._recommendation(risk_level, trend)
+            "latest_value": latest_val,
+            "trend": trend,
+            "delta_over_time": delta,
+            "risk_level": risk_level,
+            "summary": f"{parameter} is currently {latest_val}. Trend is {trend.lower()} and risk level is {risk_level.lower()}.",
+            "trend_insight": f"Values changed by {delta} across recorded history." if len(values) >= 2 else "Single measurement recorded; trend requires historical comparisons.",
+            "risk_insight": f"Parameter risk is classified as {risk_level}.",
+            "recommendation": "Consult a healthcare provider for clinical evaluation." if risk_level == "HIGH" else "Continue routine health tracking."
         }
 
-    # ----------------------------------
-    # SUMMARY
-    # ----------------------------------
-    def _build_summary(self, parameter, trend, risk_level, latest):
-        return (
-            f"{parameter} is currently {latest}. "
-            f"The trend is {trend.lower()} and overall risk is {risk_level.lower()}."
-        )
-
-    # ----------------------------------
-    # TREND INSIGHT
-    # ----------------------------------
-    def _trend_insight(self, trend, values):
-        if len(values) < 2:
-            return "Not enough data to determine trend."
-
-        first = values[0]["value"]
-        last = values[-1]["value"]
-        change = round(last - first, 2)
-
-        if trend == "Increasing":
-            return f"Values have increased by {change} over time."
-
-        if trend == "Decreasing":
-            return f"Values have decreased by {abs(change)} over time."
-
-        return "Values have remained relatively stable."
-
-    # ----------------------------------
-    # RISK INSIGHT
-    # ----------------------------------
-    def _risk_insight(self, risk_level):
-        if risk_level == "HIGH":
-            return "This parameter is in a high-risk range and may require medical attention."
-
-        if risk_level == "MEDIUM":
-            return "This parameter is borderline and should be monitored closely."
-
-        if risk_level == "LOW":
-            return "This parameter is within a safe range."
-
-        return "Risk level could not be determined."
-
-    # ----------------------------------
-    # RECOMMENDATIONS
-    # ----------------------------------
-    def _recommendation(self, risk_level, trend):
-        if risk_level == "HIGH":
-            return "Consult a doctor and consider further diagnostic tests."
-
-        if risk_level == "MEDIUM":
-            return "Monitor regularly and consider lifestyle adjustments."
-
-        if trend == "Increasing":
-            return "Keep monitoring as values are rising."
-
-        return "Maintain current lifestyle and periodic monitoring."
-
-    # ----------------------------------
-    # NO DATA
-    # ----------------------------------
-    def _no_data(self, parameter):
+    def _no_data(self, parameter: str) -> Dict[str, Any]:
         return {
             "parameter": parameter,
+            "latest_value": None,
+            "trend": "Unknown",
+            "delta_over_time": 0.0,
+            "risk_level": "UNKNOWN",
             "summary": "No data available.",
             "trend_insight": "",
             "risk_insight": "",
             "recommendation": ""
-        }
+        }
