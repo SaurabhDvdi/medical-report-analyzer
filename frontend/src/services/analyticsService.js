@@ -14,5 +14,5 @@ export const getHealthSummaryJson = () =>
 export const getCorrelationJson = () =>
   api.get('/api/analytics/correlation-json').then((res) => res.data)
 
-export const getStructuredHealthData = () =>
-  api.get('/api/analytics/structured-health-data').then((res) => res.data)
+export const getParameterTrend = (parameterName) =>
+  api.get(`/api/analytics/trend/${encodeURIComponent(parameterName)}`).then((res) => res.data)

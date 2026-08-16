@@ -1,21 +1,30 @@
 import { useQuery } from '@tanstack/react-query'
-import { getStructuredHealthData } from '../services/analyticsService'
+import { getHealthSummaryJson, getCorrelationJson, getParameterTrend } from '../../services/analyticsService'
 
-// Hook for structured health data (prepared for future interactive charts)
-export const useStructuredHealthData = () => {
+// Hook for health summary JSON data
+export const useHealthSummaryJson = () => {
   return useQuery({
-    queryKey: ['structured-health-data'],
-    queryFn: getStructuredHealthData,
-    enabled: false, // Disabled by default until charts are implemented
+    queryKey: ['healthSummaryJson'],
+    queryFn: getHealthSummaryJson,
     staleTime: 1000 * 60 * 5, // 5 minutes
   })
 }
 
-// Hook for health summary blob data (current implementation)
-export const useHealthSummary = () => {
+// Hook for parameter correlation JSON data
+export const useCorrelationJson = () => {
   return useQuery({
-    queryKey: ['health-summary'],
-    queryFn: () => getStructuredHealthData(), // Will be replaced with structured data later
+    queryKey: ['correlationJson'],
+    queryFn: getCorrelationJson,
     staleTime: 1000 * 60 * 5,
   })
 }
+
+// Hook for lab parameter trend data
+export const useParameterTrend = (parameterName) => {
+  return useQuery({
+    queryKey: ['parameterTrend', parameterName],
+    queryFn: () => getParameterTrend(parameterName),
+    enabled: Boolean(parameterName),
+    staleTime: 1000 * 60 * 5,
+  })
+}
