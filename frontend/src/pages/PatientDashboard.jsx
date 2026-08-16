@@ -13,6 +13,7 @@ import {
 } from '../services/userService'
 
 import { getReportsSummary } from '../services/reportService'
+import AIAssistantModal from '../components/AIAssistantModal'
 
 export default function PatientDashboard() {
   const navigate = useNavigate()
@@ -411,7 +412,9 @@ export default function PatientDashboard() {
             </div>
           </Link>
         </div>
+        <AIAssistantModal role="patient" />
       </div>
     </div>
   )
 }
+

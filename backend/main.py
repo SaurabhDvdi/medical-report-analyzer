@@ -61,13 +61,18 @@ from services.extractor import Extractor
 from services.risk_engine import RiskEngine
 from services.insights import InsightsEngine
 
+from routes.ai_routes import router as ai_router
+
 logger = get_logger(__name__)
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Medical Report Analyzer API", version="1.0.0")
 
+app.include_router(ai_router)
+
 app.add_middleware(
+
     CORSMiddleware,
     allow_origins=["http://localhost:3000", "http://localhost:3001", "http://localhost:5173"],
     allow_credentials=True,

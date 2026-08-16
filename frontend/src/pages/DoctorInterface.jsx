@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
 import { User, Save, Search, ArrowLeft, AlertTriangle, StickyNote } from 'lucide-react'
+import AIAssistantModal from '../components/AIAssistantModal'
+
 
 export default function DoctorInterface() {
   const { user } = useAuth()
@@ -364,6 +366,7 @@ export default function DoctorInterface() {
             </div>
           </div>
         </div>
+        <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
       </div>
     )
   }
@@ -435,6 +438,8 @@ export default function DoctorInterface() {
           </div>
         </div>
       </div>
+      <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
     </div>
   )
 }
+

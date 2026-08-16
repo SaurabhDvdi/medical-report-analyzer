@@ -1,15 +1,352 @@
-2026-07-02 03:48:25 | INFO     | 15916 | MainThread | medical_report_analyzer.__main__ | main.py:16 | INFO log is working
-2026-07-02 03:48:25 | WARNING  | 15916 | MainThread | medical_report_analyzer.__main__ | main.py:17 | WARNING log is working
-2026-07-02 03:48:25 | ERROR    | 15916 | MainThread | medical_report_analyzer.__main__ | main.py:18 | ERROR log is working
-2026-07-02 03:48:25 | ERROR    | 15916 | MainThread | medical_report_analyzer.__main__ | main.py:23 | Exception logging is working
-2026-07-02 04:13:59 | INFO     | 20276 | MainThread | medical_report_analyzer.__main__ | main.py:1985 | Starting Medical Report Analyzer API on http://localhost:8000
-2026-07-02 04:15:49 | INFO     | 18188 | MainThread | medical_report_analyzer.__main__ | main.py:1985 | Starting Medical Report Analyzer API on http://localhost:8000
-2026-07-02 04:17:27 | INFO     | 18152 | MainThread | medical_report_analyzer.__main__ | main.py:1985 | Starting Medical Report Analyzer API on http://localhost:8000
-2026-07-02 04:17:33 | INFO     | 18152 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: log@gmail.com
-2026-07-02 04:18:43 | INFO     | 18152 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: doctor1@hospital.com
-2026-07-02 04:20:45 | INFO     | 18152 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: log@gmail.com
-2026-07-02 04:28:13 | INFO     | 25212 | MainThread | medical_report_analyzer.__main__ | main.py:1985 | Starting Medical Report Analyzer API on http://localhost:8000
-2026-07-02 04:33:33 | INFO     | 23948 | MainThread | medical_report_analyzer.__main__ | main.py:1985 | Starting Medical Report Analyzer API on http://localhost:8000
-2026-07-02 04:34:26 | INFO     | 23948 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: log@gmail.com
-2026-07-02 04:34:51 | INFO     | 23948 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: doctor1@hospital.com
-2026-07-02 04:41:51 | INFO     | 23948 | MainThread | medical_report_analyzer.__main__ | main.py:202 | Login attempt for email: doctor1@hospital.com
+2026-08-12 01:11:47 | INFO     | 17288 | MainThread | medical_report_analyzer.services.nlp_service | nlp_service.py:36 | Loading BART summarization model (facebook/bart-large-cnn)...
+2026-08-12 01:12:05 | INFO     | 17288 | MainThread | medical_report_analyzer.__main__ | main.py:1990 | Starting Medical Report Analyzer API on http://localhost:8000
+2026-08-12 01:12:16 | INFO     | 17288 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com
+2026-08-12 01:13:12 | INFO     | 17288 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com
+2026-08-12 01:13:32 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-12 01:13:39 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:13:43 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:13:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:13:44 | ERROR    | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kzp97dmxep79tevamwa4smep` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6732, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+2026-08-12 01:13:58 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'How do I upload a medical report?' as intent: APPLICATION_HELP
+2026-08-12 01:13:59 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:14:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:14:00 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:14:00 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:14:05 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:14:05 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:05 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:14:05 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:05 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:14:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'How do I request access to a doctor?' as intent: APPLICATION_HELP
+2026-08-12 01:14:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:14:38 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-12 01:14:38 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:38 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-12 01:14:38 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:38 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:14:48 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'doctor_access'}
+2026-08-12 01:14:48 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:48 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'doctor_access'}
+2026-08-12 01:14:48 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:14:48 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:15:14 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:15:14 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:14 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-12 01:15:14 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:14 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:15:22 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:15:22 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:22 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:15:22 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:22 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:15:51 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:15:51 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:51 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:15:51 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:15:51 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:16:01 | WARNING  | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:372 | Reached maximum tool loop iteration limit (5). Ending graph.
+2026-08-12 01:24:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-12 01:24:02 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:24:03 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:24:04 | ERROR    | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kzp97dmxep79tevamwa4smep` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6605, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+2026-08-12 01:26:28 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-12 01:26:29 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:26:30 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-12 01:26:31 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:26:31 | ERROR    | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kzp97dmxep79tevamwa4smep` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6732, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+2026-08-12 01:29:21 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-12 01:29:22 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-12 01:29:23 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:29:50 | ERROR    | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 413 - {'error': {'message': 'Request too large for model `llama-3.1-8b-instant` in organization `org_01kzp97dmxep79tevamwa4smep` service tier `on_demand` on tokens per minute (TPM): Limit 6000, Requested 6605, please reduce your message size and try again. Need more tokens? Upgrade to Dev Tier today at https://console.groq.com/settings/billing', 'type': 'tokens', 'code': 'rate_limit_exceeded'}}
+2026-08-12 01:32:53 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Which values in my report are abnormal?' as intent: CLINICAL
+2026-08-12 01:32:54 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:32:54 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:32:54 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:32:54 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-12 01:32:54 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:32:55 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:44:19 | INFO     | 23124 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'check_drug_interactions' for target patient 1 (Requested by User 1)
+2026-08-12 01:44:19 | ERROR    | 23124 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:195 | Ollama is unavailable at http://localhost:11434
+2026-08-12 01:44:51 | INFO     | 17288 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com
+2026-08-12 01:44:57 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-12 01:44:59 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:44:59 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:44:59 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:45:00 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:45:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:45:01 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {'parameter_name': 'HbA1c'}
+2026-08-12 01:45:01 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:45:38 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:45 | Initializing ChatOllama: model=qwen2.5:3b, base_url=http://localhost:11434
+2026-08-12 01:45:39 | INFO     | 23124 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:45 | INFO     | 23124 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'check_drug_interactions' for target patient 1 (Requested by User 1)
+2026-08-12 01:45:45 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:427 | Classified query 'Check my lab trend for glucose' as intent: CLINICAL
+2026-08-12 01:45:51 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | Iteration #0 Agent Node: Invoking LLM (ollama/qwen2.5:3b) under intent 'CLINICAL'
+2026-08-12 01:45:51 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:45 | Initializing ChatOllama: model=qwen2.5:3b, base_url=http://localhost:11434
+2026-08-12 01:46:26 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Which doctors have access to my reports?' as intent: CLINICAL
+2026-08-12 01:46:32 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:46:33 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-12 01:46:33 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-12 01:46:33 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-12 01:46:33 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-12 01:46:33 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:46:47 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Tell me about my connected doctors.' as intent: CLINICAL
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-12 01:46:50 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:48:02 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:284 | Iteration #0 Agent Node Output: has_tool_calls=True, tools=['get_lab_trend'], content_length=0
+2026-08-12 01:48:02 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:401 | Iteration #0 Transition: LLM requested tool calls ['get_lab_trend']. Routing to 'tools' node.
+2026-08-12 01:48:02 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:327 | Iteration #1 Tool Dispatch: get_lab_trend with args {'parameter_name': 'glucose'} (ID: 8bc8b6fb-393b-4fc6-9334-6b8b10730085)
+2026-08-12 01:48:02 | INFO     | 23124 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-12 01:48:03 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:275 | Iteration #1 Agent Node: Invoking LLM (ollama/qwen2.5:3b) under intent 'CLINICAL'
+2026-08-12 01:48:03 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:45 | Initializing ChatOllama: model=qwen2.5:3b, base_url=http://localhost:11434
+2026-08-12 01:48:30 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:284 | Iteration #1 Agent Node Output: has_tool_calls=False, tools=[], content_length=149
+2026-08-12 01:48:30 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:404 | Iteration #1 Transition: LLM returned final answer content (no tool calls). Routing to 'end'.
+2026-08-12 01:48:30 | INFO     | 23124 | MainThread | medical_report_analyzer.ai.agent | agent.py:494 | AI Performance Diagnostics — Provider: ollama | Model: qwen2.5:3b | Intent: CLINICAL | Tools Called: ['get_lab_trend'] | Graph Iterations: 1 | Message Count: 5 | Total Latency: 165.031s
+2026-08-12 01:52:16 | INFO     | 17288 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com
+2026-08-12 01:52:58 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'list down the names of patients I have ' as intent: CLINICAL
+2026-08-12 01:53:00 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:53:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_patients with args {}
+2026-08-12 01:53:01 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patients' for target patient 0 (Requested by User 2)
+2026-08-12 01:53:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_patients with args {}
+2026-08-12 01:53:01 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patients' for target patient 0 (Requested by User 2)
+2026-08-12 01:53:01 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:53:06 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Show me my active patient list.' as intent: CLINICAL
+2026-08-12 01:53:07 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:53:25 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_patients with args {}
+2026-08-12 01:53:25 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patients' for target patient 0 (Requested by User 2)
+2026-08-12 01:53:25 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_patients with args {}
+2026-08-12 01:53:25 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patients' for target patient 0 (Requested by User 2)
+2026-08-12 01:53:25 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:53:34 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Summarize patient medical history' as intent: CLINICAL
+2026-08-12 01:53:35 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:53:56 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-12 01:53:56 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_patient_history' for target patient 44 (Requested by User 2)
+2026-08-12 01:53:56 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-12 01:53:56 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_patient_history' for target patient 44 (Requested by User 2)
+2026-08-12 01:53:56 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:54:43 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'How many patients do I have?' as intent: MY_PATIENTS
+2026-08-12 01:54:44 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 01:54:45 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_patient_count with args {}
+2026-08-12 01:54:45 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patient_count' for target patient 44 (Requested by User 2)
+2026-08-12 01:54:46 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_patient_count with args {}
+2026-08-12 01:54:46 | INFO     | 17288 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_patient_count' for target patient 44 (Requested by User 2)
+2026-08-12 01:54:46 | INFO     | 17288 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-12 18:31:29 | INFO     | 2512 | MainThread | medical_report_analyzer.services.nlp_service | nlp_service.py:36 | Loading BART summarization model (facebook/bart-large-cnn)...
+2026-08-12 18:31:43 | INFO     | 2512 | MainThread | medical_report_analyzer.__main__ | main.py:1990 | Starting Medical Report Analyzer API on http://localhost:8000
+2026-08-12 18:31:53 | INFO     | 2512 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com
+2026-08-12 18:31:59 | INFO     | 2512 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com

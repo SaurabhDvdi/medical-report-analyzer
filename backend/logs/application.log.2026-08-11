@@ -1,0 +1,794 @@
+2026-08-11 00:06:39 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:06:40 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:06:40 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 1)
+2026-08-11 00:06:40 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:07:20 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:07:23 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'Dr. Rajesh Sharma'}
+2026-08-11 00:07:23 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 00:07:23 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:08:27 | INFO     | 10688 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com
+2026-08-11 00:09:23 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_patient_history' for target patient 44 (Requested by User 2)
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_health_summary' for target patient 44 (Requested by User 2)
+2026-08-11 00:09:26 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:10:30 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 2)
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 2)
+2026-08-11 00:10:31 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:10:32 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:10:32 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 2)
+2026-08-11 00:10:32 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:11:06 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:11:07 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'best doctors in my area'}
+2026-08-11 00:11:07 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 00:11:07 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 00:11:07 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-11 00:11:07 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:11:49 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:11:50 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:11:50 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 1)
+2026-08-11 00:11:50 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:11:51 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.agent | agent.py:206 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:11:51 | INFO     | 10688 | MainThread | medical_report_analyzer.mcp.client | client.py:53 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 1)
+2026-08-11 00:11:52 | INFO     | 10688 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:19:14 | INFO     | 20008 | MainThread | medical_report_analyzer.services.nlp_service | nlp_service.py:36 | Loading BART summarization model (facebook/bart-large-cnn)...
+2026-08-11 00:19:22 | INFO     | 20008 | MainThread | medical_report_analyzer.__main__ | main.py:1990 | Starting Medical Report Analyzer API on http://localhost:8000
+2026-08-11 00:20:53 | INFO     | 20008 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com
+2026-08-11 00:21:16 | INFO     | 20008 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com
+2026-08-11 00:21:29 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'list down best doctors ' as intent: DOCTOR_DIRECTORY
+2026-08-11 00:21:34 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:21:38 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: search_doctors with args {'query': None, 'sort_by': None, 'specialty': None}
+2026-08-11 00:21:38 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 00:21:38 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:21:39 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_doctor_profile with args {'doctor_id': 2}
+2026-08-11 00:21:39 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_doctor_profile' for target patient 1 (Requested by User 1)
+2026-08-11 00:21:39 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:22:02 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_doctor_profile with args {'doctor_id': 3}
+2026-08-11 00:22:02 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_doctor_profile' for target patient 1 (Requested by User 1)
+2026-08-11 00:22:02 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:22:39 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_doctor_specialties with args {}
+2026-08-11 00:22:39 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_doctor_specialties' for target patient 1 (Requested by User 1)
+2026-08-11 00:22:39 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:23:51 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'Find me a cardiologist.' as intent: DOCTOR_DIRECTORY
+2026-08-11 00:23:52 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:23:52 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: search_doctors with args {'query': 'cardiologist', 'specialty': 'cardiology'}
+2026-08-11 00:23:52 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 00:23:52 | ERROR    | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:196 | MCP Tool Execution Error in 'search_doctors': (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1066, "Not unique table/alias: 'doctor_profiles'")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\backend\mcp\client.py", line 144, in execute_tool
+    return MCPToolRegistry.search_doctors(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        ctx=ctx,
+        ^^^^^^^^
+    ...<2 lines>...
+        sort_by=args.get("sort_by")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\backend\mcp\tools.py", line 175, in search_doctors
+    doctors = q.limit(20).all()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2711, in all
+    return self._iter().all()  # type: ignore
+           ~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2864, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+        params,
+        ^^^^^^^
+        execution_options={"_sa_orm_load_options": self.load_options},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 00:23:52 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_doctor_specialties with args {}
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_doctor_specialties' for target patient 1 (Requested by User 1)
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: search_doctors with args {'query': 'cardiologist', 'specialty': 'cardiology'}
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 00:23:53 | ERROR    | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:196 | MCP Tool Execution Error in 'search_doctors': (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1066, "Not unique table/alias: 'doctor_profiles'")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\backend\mcp\client.py", line 144, in execute_tool
+    return MCPToolRegistry.search_doctors(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        ctx=ctx,
+        ^^^^^^^^
+    ...<2 lines>...
+        sort_by=args.get("sort_by")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\backend\mcp\tools.py", line 175, in search_doctors
+    doctors = q.limit(20).all()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2711, in all
+    return self._iter().all()  # type: ignore
+           ~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2864, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+        params,
+        ^^^^^^^
+        execution_options={"_sa_orm_load_options": self.load_options},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 00:23:53 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:23:54 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_doctor_specialties with args {}
+2026-08-11 00:23:54 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_doctor_specialties' for target patient 1 (Requested by User 1)
+2026-08-11 00:23:54 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:24:18 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: search_doctors with args {'query': 'cardiologist', 'specialty': 'cardiology'}
+2026-08-11 00:24:18 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 00:24:18 | ERROR    | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:196 | MCP Tool Execution Error in 'search_doctors': (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.OperationalError: (1066, "Not unique table/alias: 'doctor_profiles'")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "D:\medical-report-analyzer\backend\mcp\client.py", line 144, in execute_tool
+    return MCPToolRegistry.search_doctors(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        ctx=ctx,
+        ^^^^^^^^
+    ...<2 lines>...
+        sort_by=args.get("sort_by")
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\backend\mcp\tools.py", line 175, in search_doctors
+    doctors = q.limit(20).all()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2711, in all
+    return self._iter().all()  # type: ignore
+           ~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\query.py", line 2864, in _iter
+    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
+                                                  ~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+        params,
+        ^^^^^^^
+        execution_options={"_sa_orm_load_options": self.load_options},
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2351, in execute
+    return self._execute_internal(
+           ~~~~~~~~~~~~~~~~~~~~~~^
+        statement,
+        ^^^^^^^^^^
+    ...<4 lines>...
+        _add_event=_add_event,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\session.py", line 2249, in _execute_internal
+    result: Result[Any] = compile_state_cls.orm_execute_statement(
+                          ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self,
+        ^^^^^
+    ...<4 lines>...
+        conn,
+        ^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\orm\context.py", line 306, in orm_execute_statement
+    result = conn.execute(
+        statement, params or {}, execution_options=execution_options
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1419, in execute
+    return meth(
+        self,
+        distilled_parameters,
+        execution_options or NO_OPTIONS,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\sql\elements.py", line 527, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        self, distilled_params, execution_options
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1641, in _execute_clauseelement
+    ret = self._execute_context(
+        dialect,
+    ...<8 lines>...
+        cache_hit=cache_hit,
+    )
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        dialect, context, statement, parameters
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        e, str_statement, effective_parameters, cursor, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 2363, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+    ~~~~~~~~~~~~~~~~~~~~~~~^
+        cursor, str_statement, effective_parameters, context
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\sqlalchemy\engine\default.py", line 952, in do_execute
+    cursor.execute(statement, parameters)
+    ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 157, in execute
+    result = self._query(query)
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\cursors.py", line 328, in _query
+    conn.query(q)
+    ~~~~~~~~~~^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 575, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 826, in _read_query_result
+    result.read()
+    ~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 1203, in read
+    first_packet = self.connection._read_packet()
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\connections.py", line 782, in _read_packet
+    packet.raise_for_error()
+    ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\medical-report-analyzer\.venv\Lib\site-packages\pymysql\err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.OperationalError: (pymysql.err.OperationalError) (1066, "Not unique table/alias: 'doctor_profiles'")
+[SQL: SELECT users.id AS users_id, users.email AS users_email, users.password_hash AS users_password_hash, users.full_name AS users_full_name, users.`role` AS users_role, users.created_at AS users_created_at, users.doctor_category_id AS users_doctor_category_id, users.doctor_specialty_id AS users_doctor_specialty_id 
+FROM users LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id LEFT OUTER JOIN doctor_specialties ON users.doctor_specialty_id = doctor_specialties.id LEFT OUTER JOIN doctor_categories ON users.doctor_category_id = doctor_categories.id LEFT OUTER JOIN doctor_profiles ON users.id = doctor_profiles.user_id 
+WHERE users.`role` = %(role_1)s AND (lower(doctor_profiles.specialization) LIKE lower(%(specialization_1)s) OR lower(doctor_specialties.name) LIKE lower(%(name_1)s) OR lower(doctor_categories.name) LIKE lower(%(name_2)s)) AND (lower(users.full_name) LIKE lower(%(full_name_1)s) OR lower(users.email) LIKE lower(%(email_1)s) OR lower(doctor_profiles.clinic_name) LIKE lower(%(clinic_name_1)s) OR lower(doctor_profiles.specialization) LIKE lower(%(specialization_2)s)) 
+ LIMIT %(param_1)s]
+[parameters: {'role_1': 'doctor', 'specialization_1': '%cardiology%', 'name_1': '%cardiology%', 'name_2': '%cardiology%', 'full_name_1': '%cardiologist%', 'email_1': '%cardiologist%', 'clinic_name_1': '%cardiologist%', 'specialization_2': '%cardiologist%', 'param_1': 20}]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+2026-08-11 00:24:18 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:24:47 | WARNING  | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:361 | Reached maximum tool loop iteration limit (5). Ending graph.
+2026-08-11 00:25:25 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'but us just showed Interventional Cardiology' as intent: CLINICAL
+2026-08-11 00:25:28 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:25:29 | ERROR    | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:277 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 400 - {'error': {'message': "tool call validation failed: attempted to call tool 'search_doctors' which was not in request.tools", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '<function=search_doctors>{"query": "Interventional Cardiology"} </function>'}}
+2026-08-11 00:26:41 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'How do I request access to a doctor?' as intent: APPLICATION_HELP
+2026-08-11 00:26:43 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:26:44 | ERROR    | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:277 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 400 - {'error': {'message': "Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '<function=get_website_help>{"topic": "request_doctor_access"}'}}
+2026-08-11 00:31:23 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'How do I request access to a doctor?' as intent: APPLICATION_HELP
+2026-08-11 00:31:26 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:31:27 | ERROR    | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:277 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 400 - {'error': {'message': "Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '<function=get_website_help>{"topic": "request_doctor_access"}'}}
+2026-08-11 00:31:34 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'How do I request access to a doctor?' as intent: APPLICATION_HELP
+2026-08-11 00:31:36 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:31:37 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:301 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-11 00:31:37 | INFO     | 20008 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:31:37 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:32:15 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:389 | Classified query 'give me best use of this application' as intent: CLINICAL
+2026-08-11 00:32:17 | INFO     | 20008 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:32:19 | ERROR    | 20008 | MainThread | medical_report_analyzer.ai.agent | agent.py:277 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 400 - {'error': {'message': "tool call validation failed: attempted to call tool 'get_website_help' which was not in request.tools", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '<function=get_website_help></function>\n\n'}}
+2026-08-11 00:33:33 | INFO     | 13396 | MainThread | medical_report_analyzer.services.nlp_service | nlp_service.py:36 | Loading BART summarization model (facebook/bart-large-cnn)...
+2026-08-11 00:33:49 | INFO     | 13396 | MainThread | medical_report_analyzer.__main__ | main.py:1990 | Starting Medical Report Analyzer API on http://localhost:8000
+2026-08-11 00:35:41 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.agent | agent.py:384 | Classified query 'Summarize patient medical history' as intent: CLINICAL
+2026-08-11 00:35:46 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:35:50 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.agent | agent.py:296 | LangGraph Tool Call Dispatch: get_patient_history with args {}
+2026-08-11 00:35:50 | INFO     | 13396 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 2)
+2026-08-11 00:35:50 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:36:31 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.agent | agent.py:384 | Classified query 'do you have context of this chat ' as intent: CLINICAL
+2026-08-11 00:36:32 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:37:02 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.agent | agent.py:384 | Classified query 'how to upload reports or grant doctor access.' as intent: APPLICATION_HELP
+2026-08-11 00:37:04 | INFO     | 13396 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:37:09 | ERROR    | 13396 | MainThread | medical_report_analyzer.ai.agent | agent.py:272 | LangGraph Agent Node LLM Error (groq/llama-3.1-8b-instant): Error code: 400 - {'error': {'message': "Failed to call a function. Please adjust your prompt. See 'failed_generation' for more details.", 'type': 'invalid_request_error', 'code': 'tool_use_failed', 'failed_generation': '<function=get_website_help>{"topic": "general"}'}}
+2026-08-11 00:49:22 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'check_drug_interactions' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:10 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:50:15 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:50:16 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_patient_history' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:17 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'check_drug_interactions' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:17 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.agent | agent.py:399 | Classified query 'Check my lab trend for glucose' as intent: CLINICAL
+2026-08-11 00:50:18 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.agent | agent.py:298 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.agent | agent.py:309 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.agent | agent.py:298 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.agent | agent.py:309 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 00:50:19 | INFO     | 10000 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:55:25 | INFO     | 24964 | MainThread | medical_report_analyzer.services.nlp_service | nlp_service.py:36 | Loading BART summarization model (facebook/bart-large-cnn)...
+2026-08-11 00:55:33 | INFO     | 24964 | MainThread | medical_report_analyzer.__main__ | main.py:1990 | Starting Medical Report Analyzer API on http://localhost:8000
+2026-08-11 00:55:48 | INFO     | 24964 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com
+2026-08-11 00:56:34 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'What can I do with this application?' as intent: CLINICAL
+2026-08-11 00:56:39 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {}
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {}
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {}
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {}
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:56:43 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:57:04 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-11 00:57:04 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:04 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-11 00:57:04 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:04 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:57:32 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-11 00:57:32 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:32 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-11 00:57:32 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:32 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:57:51 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 00:57:51 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:51 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 00:57:51 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:57:51 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:58:11 | WARNING  | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:372 | Reached maximum tool loop iteration limit (5). Ending graph.
+2026-08-11 00:58:20 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'How do I upload a medical report?' as intent: APPLICATION_HELP
+2026-08-11 00:58:22 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:58:27 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-11 00:58:27 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:58:27 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'upload_report'}
+2026-08-11 00:58:27 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:58:27 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:58:46 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-11 00:58:46 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:58:46 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'request_doctor_access'}
+2026-08-11 00:58:46 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:58:46 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:59:02 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 00:59:02 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:02 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 00:59:02 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:02 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:59:20 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-11 00:59:20 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:20 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-11 00:59:20 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:20 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:59:39 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'doctor_access'}
+2026-08-11 00:59:39 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:39 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'doctor_access'}
+2026-08-11 00:59:39 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 00:59:39 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 00:59:59 | WARNING  | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:372 | Reached maximum tool loop iteration limit (5). Ending graph.
+2026-08-11 01:00:12 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-11 01:00:13 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'HbA1c'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'glucose'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'cholesterol'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'tsh'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: search_medical_guidelines with args {'query': 'hemoglobin'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'search_medical_guidelines' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'lab_trends'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_website_help with args {'topic': 'report_comparison'}
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_website_help' for target patient 1 (Requested by User 1)
+2026-08-11 01:00:16 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:26:33 | INFO     | 24964 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: test1@gmail.com
+2026-08-11 13:26:38 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'Explain my latest lab report' as intent: CLINICAL
+2026-08-11 13:26:39 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: compare_reports with args {'new_report_id': 67890, 'old_report_id': 12345}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'compare_reports' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'HbA1c'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'glucose'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'cholesterol'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'tsh'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_lab_trend with args {'parameter_name': 'hemoglobin'}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_lab_trend' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_health_summary with args {}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_health_summary' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: calculate_health_risk with args {}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'calculate_health_risk' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: compare_reports with args {'new_report_id': 67890, 'old_report_id': 12345}
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'compare_reports' for target patient 1 (Requested by User 1)
+2026-08-11 13:26:40 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:32:46 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:400 | Classified query 'tell me something about me ' as intent: CLINICAL
+2026-08-11 13:32:47 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_doctors with args {}
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_doctors' for target patient 1 (Requested by User 1)
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_reports with args {}
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_reports' for target patient 1 (Requested by User 1)
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_reports with args {}
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_reports' for target patient 1 (Requested by User 1)
+2026-08-11 13:32:48 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:33:06 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:299 | LangGraph Tool Call Dispatch: get_my_medicines with args {}
+2026-08-11 13:33:06 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_medicines' for target patient 1 (Requested by User 1)
+2026-08-11 13:33:06 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.agent | agent.py:310 | LangGraph Tool Call Dispatch: get_my_medicines with args {}
+2026-08-11 13:33:06 | INFO     | 24964 | MainThread | medical_report_analyzer.mcp.client | client.py:106 | MCP Tool Dispatch: 'get_my_medicines' for target patient 1 (Requested by User 1)
+2026-08-11 13:33:06 | INFO     | 24964 | MainThread | medical_report_analyzer.ai.llm_service | llm_service.py:61 | Initializing ChatOpenAI for Groq: model=llama-3.1-8b-instant, base_url=https://api.groq.com/openai/v1
+2026-08-11 13:40:25 | INFO     | 24964 | MainThread | medical_report_analyzer.__main__ | main.py:207 | Login attempt for email: doctor1@hospital.com

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime, date
 
 class UserCreate(BaseModel):
@@ -154,4 +154,27 @@ class DoctorSpecialtyCreate(BaseModel):
 
 class PatientDoctorAccessCreate(BaseModel):
     doctor_id: int
+
+
+class AIChatRequest(BaseModel):
+    message: str
+    patient_id: Optional[int] = None
+    old_report_id: Optional[int] = None
+    new_report_id: Optional[int] = None
+    parameter_name: Optional[str] = None
+
+
+class AIChatResponse(BaseModel):
+    answer: str
+    sources: List[dict] = []
+    tools_used: List[str] = []
+    llm_status: str = "success"
+    suggested_questions: List[str] = []
+    intent: Optional[str] = None
+    context: Optional[dict] = None
+
+
+class ReportComparisonRequest(BaseModel):
+    old_report_id: int
+    new_report_id: int
 

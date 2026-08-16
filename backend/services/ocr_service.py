@@ -4,6 +4,8 @@ from PIL import Image
 import pdf2image
 import easyocr
 import numpy as np
+import tempfile
+import concurrent.futures
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -16,7 +18,8 @@ class OCRService:
             self.easyocr_reader = easyocr.Reader(['en'], gpu=False)
         except:
             self.use_easyocr = False
-            print("EasyOCR not available, using Tesseract")
+            # print("EasyOCR not available, using Tesseract")
+            logger.exception("EasyOCR not available, using Tesseract")
 
     def extract_text(self, file_path: str):
         # Returns list of text lines from PDF or image
@@ -26,15 +29,16 @@ class OCRService:
             else:
                 return self._extract_from_image(file_path)
         except Exception as e:
-            print(f"OCR Error: {str(e)}")
+            # print(f"OCR Error: {str(e)}")
+            logger.exception(f"OCR Error: {str(e)}")
             return []
 
     def _extract_from_pdf(self, file_path: str):
         # Requires Poppler (C:\poppler\Library\bin on Windows)
         # See README for installation instructions
         try:
-            POPPLER_PATH = r"C:\poppler\Library\bin"
-            poppler_path = POPPLER_PATH if os.path.isdir(POPPLER_PATH) else None
+            poppler_env = os.getenv("POPPLER_PATH")
+            poppler_path = poppler_env if poppler_env and os.path.isdir(poppler_env) else None
 
             images = pdf2image.convert_from_path(
                 file_path,
@@ -43,14 +47,27 @@ class OCRService:
             )
             all_lines = []
 
-            for image in images:
-                lines = self._process_image(image)
-                all_lines.extend(lines)
+            # 2. CREATE A TEMP DIRECTORY TO HOLD PAGES ON DISK INSTEAD OF RAM
+            with tempfile.TemporaryDirectory() as output_dir:
+                images = pdf2image.convert_from_path(
+                    file_path, 
+                    dpi=300, 
+                    poppler_path=poppler_path,
+                    output_folder=output_dir,  # Saves pages to disk
+                    paths_only=True            # Returns file paths instead of massive image objects
+                )
 
+            # 3. LOOP THROUGH THE PATHS AND OPEN ONE IMAGE AT A TIME
+            from PIL import Image
+            for img_path in images:
+                with Image.open(img_path) as image:
+                    lines = self._process_image(image)
+                    all_lines.extend(lines)
             return all_lines
 
         except Exception as e:
-            print(f"PDF OCR Error: {str(e)}")
+            # print(f"PDF OCR Error: {str(e)}")
+            logger.exception(f"PDF OCR Error")
             return []
 
     def _extract_from_image(self, file_path: str):
@@ -58,7 +75,8 @@ class OCRService:
             image = Image.open(file_path)
             return self._process_image(image)
         except Exception as e:
-            print(f"Image OCR Error: {str(e)}")
+            # print(f"Image OCR Error: {str(e)}")
+            logger.exception(f"Image OCR Error: {str(e)}")
             return []
 
     # -----------------------------
