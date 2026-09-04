@@ -97,24 +97,27 @@ class RAGService:
             .all()
         )
 
-        for rep in reports:
-            report_date_str = str(rep.report_date or rep.upload_date.date())
-            lab_vals = db.query(LabValue).filter(LabValue.report_id == rep.id).all()
-            vals_str = []
-            for lv in lab_vals:
-                status_flag = " (ABNORMAL)" if lv.is_abnormal else " (Normal)"
-                vals_str.append(f"  - {lv.parameter_name}: {lv.value} {lv.unit or ''} [Ref: {lv.reference_range or 'N/A'}]{status_flag}")
+        if reports:
+            for rep in reports:
+                report_date_str = str(rep.report_date or rep.upload_date.date())
+                lab_vals = db.query(LabValue).filter(LabValue.report_id == rep.id).all()
+                vals_str = []
+                for lv in lab_vals:
+                    status_flag = " (ABNORMAL)" if lv.is_abnormal else " (Normal)"
+                    vals_str.append(f"  - {lv.parameter_name}: {lv.value} {lv.unit or ''} [Ref: {lv.reference_range or 'N/A'}]{status_flag}")
 
-            rep_text = f"[Report #{rep.id} - Date: {report_date_str} - File: {rep.file_name}]\n"
-            if rep.ai_summary:
-                rep_text += f"Summary: {rep.ai_summary}\n"
-            if vals_str:
-                rep_text += "Extracted Measurements:\n" + "\n".join(vals_str)
-            else:
-                rep_text += "No extracted lab values recorded for this report."
+                rep_text = f"[Report #{rep.id} - Date: {report_date_str} - File: {rep.file_name}]\n"
+                if rep.ai_summary:
+                    rep_text += f"Summary: {rep.ai_summary}\n"
+                if vals_str:
+                    rep_text += "Extracted Measurements:\n" + "\n".join(vals_str)
+                else:
+                    rep_text += "No extracted lab values recorded for this report."
 
-            context_blocks.append(rep_text)
-            sources.append({"source_type": "patient_report", "source": f"Report #{rep.id} ({rep.file_name})"})
+                context_blocks.append(rep_text)
+                sources.append({"source_type": "patient_report", "source": f"Report #{rep.id} ({rep.file_name})"})
+        else:
+            context_blocks.append("[Uploaded Reports]\nNo medical reports uploaded yet for this patient.")
 
         # 3. Active & Past Medicines
         medicines = db.query(Medicine).filter(Medicine.user_id == patient_id).all()

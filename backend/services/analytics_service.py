@@ -27,8 +27,17 @@ class AnalyticsService:
         plt.rcParams['figure.figsize'] = (12, 6)
     
     def _get_lab_values_df(self, user_id: int, role: str, start_date: str = None, end_date: str = None, db: Session = None) -> pd.DataFrame:
-        """Get lab values as pandas DataFrame using report_date for time-based queries"""
-        query = db.query(LabValue).join(Report)
+        """Get lab values as pandas DataFrame using report_date for time-based queries with column tuple selection"""
+        query = db.query(
+            LabValue.parameter_name,
+            LabValue.value,
+            LabValue.unit,
+            LabValue.reference_range,
+            LabValue.is_abnormal,
+            Report.report_date,
+            Report.upload_date,
+            LabValue.report_id
+        ).join(Report)
         
         if role != "doctor":
             query = query.filter(Report.user_id == user_id)
@@ -52,21 +61,23 @@ class AnalyticsService:
         if end_date:
             query = query.filter(Report.report_date <= datetime.fromisoformat(end_date).date())
         
-        lab_values = query.all()
+        rows = query.all()
+        
+        if not rows:
+            return pd.DataFrame(columns=['parameter_name', 'value', 'unit', 'reference_range', 'is_abnormal', 'date', 'report_date', 'report_id'])
         
         data = []
-        for lv in lab_values:
-            # Use report_date if available, otherwise fallback to upload_date
-            report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
+        for parameter_name, value, unit, reference_range, is_abnormal, report_date, upload_date, report_id in rows:
+            effective_date = report_date if report_date else upload_date
             data.append({
-                'parameter_name': lv.parameter_name,
-                'value': lv.value,
-                'unit': lv.unit,
-                'reference_range': lv.reference_range,
-                'is_abnormal': lv.is_abnormal,
-                'date': report_date,  # Use report_date from parsed metadata
-                'report_date': report_date,
-                'report_id': lv.report_id
+                'parameter_name': parameter_name,
+                'value': value,
+                'unit': unit,
+                'reference_range': reference_range,
+                'is_abnormal': is_abnormal,
+                'date': effective_date,
+                'report_date': effective_date,
+                'report_id': report_id
             })
         
         return pd.DataFrame(data)
@@ -74,25 +85,18 @@ class AnalyticsService:
     def _get_limited_lab_values_df(self, user_id: int, role: str, db: Session = None) -> pd.DataFrame:
         """
         Get lab values with LIMIT 10 per (user_id, parameter_name).
-        Uses report_date for ordering to get the latest 10 reports per test.
+        Uses column tuple selection to eliminate ORM overhead.
         """
-        # Subquery to get latest 10 report_ids per user_id and parameter_name
-        subquery = (
-            db.query(
-                LabValue.parameter_name,
-                LabValue.report_id,
-                func.row_number().over(
-                    partition_by=[LabValue.parameter_name, LabValue.report_id],
-                    order_by=Report.report_date.desc()
-                ).label('row_num')
-            )
-            .join(Report)
-            .filter(Report.user_id == user_id if role != "doctor" else True)
-            .subquery()
-        )
-        
-        # Get the actual lab values for the limited reports
-        query = db.query(LabValue).join(Report)
+        query = db.query(
+            LabValue.parameter_name,
+            LabValue.value,
+            LabValue.unit,
+            LabValue.reference_range,
+            LabValue.is_abnormal,
+            Report.report_date,
+            Report.upload_date,
+            LabValue.report_id
+        ).join(Report)
         
         if role != "doctor":
             query = query.filter(Report.user_id == user_id)
@@ -108,38 +112,38 @@ class AnalyticsService:
                 )
             )
         
-        # Order by report_date DESC and limit to 10 per parameter
-        # This uses a window function approach via the subquery
-        lab_values = query.all()
+        rows = query.all()
+        if not rows:
+            return pd.DataFrame(columns=['parameter_name', 'value', 'unit', 'reference_range', 'is_abnormal', 'date', 'report_date', 'report_id'])
         
         # Group by parameter and take latest 10 per parameter
         param_groups = {}
-        for lv in lab_values:
-            param = lv.parameter_name
+        for row in rows:
+            param = row[0]
             if param not in param_groups:
                 param_groups[param] = []
-            param_groups[param].append(lv)
+            param_groups[param].append(row)
         
         data = []
-        for param, values in param_groups.items():
-            # Sort by report_date descending
-            sorted_values = sorted(
-                values,
-                key=lambda x: x.report.report_date if x.report.report_date else x.report.upload_date,
+        for param, group_rows in param_groups.items():
+            # Sort by report_date/upload_date descending
+            sorted_rows = sorted(
+                group_rows,
+                key=lambda x: x[5] if x[5] else x[6],
                 reverse=True
             )[:MAX_REPORTS_PER_PARAMETER]
             
-            for lv in sorted_values:
-                report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
+            for parameter_name, value, unit, reference_range, is_abnormal, report_date, upload_date, report_id in sorted_rows:
+                effective_date = report_date if report_date else upload_date
                 data.append({
-                    'parameter_name': lv.parameter_name,
-                    'value': lv.value,
-                    'unit': lv.unit,
-                    'reference_range': lv.reference_range,
-                    'is_abnormal': lv.is_abnormal,
-                    'date': report_date,
-                    'report_date': report_date,
-                    'report_id': lv.report_id
+                    'parameter_name': parameter_name,
+                    'value': value,
+                    'unit': unit,
+                    'reference_range': reference_range,
+                    'is_abnormal': is_abnormal,
+                    'date': effective_date,
+                    'report_date': effective_date,
+                    'report_id': report_id
                 })
         
         return pd.DataFrame(data)
@@ -297,46 +301,11 @@ class AnalyticsService:
         
         return chart_path
     
-    def generate_correlation_heatmap(self, user_id: int, role: str, db: Session = None) -> str:
-        """Generate correlation heatmap for numeric parameters"""
-        df = self._get_lab_values_df(user_id, role, None, None, db)
-        
-        if df.empty:
-            fig, ax = plt.subplots()
-            ax.text(0.5, 0.5, 'No data available', ha='center', va='center', fontsize=14)
-            ax.set_title('Parameter Correlation')
-        else:
-            # Pivot to get parameters as columns
-            pivot_df = df.pivot_table(
-                index='report_id',
-                columns='parameter_name',
-                values='value',
-                aggfunc='mean'
-            )
-            
-            if pivot_df.shape[1] < 2:
-                fig, ax = plt.subplots()
-                ax.text(0.5, 0.5, 'Insufficient data for correlation', ha='center', va='center', fontsize=14)
-                ax.set_title('Parameter Correlation')
-            else:
-                # Calculate correlation
-                corr_matrix = pivot_df.corr()
-                
-                fig, ax = plt.subplots(figsize=(12, 10))
-                sns.heatmap(corr_matrix, annot=True, fmt='.2f', cmap='coolwarm', 
-                           center=0, square=True, linewidths=1, cbar_kws={"shrink": 0.8})
-                ax.set_title('Parameter Correlation Heatmap')
-                plt.tight_layout()
-        
-        chart_path = os.path.join(self.charts_dir, f'correlation_{datetime.now().timestamp()}.png')
-        plt.savefig(chart_path, dpi=150, bbox_inches='tight')
-        plt.close()
-        
-        return chart_path
-    
-    def get_test_timeseries(self, parameter_name, user_id, role, db: Session):
+
+    def get_test_timeseries(self, parameter_name, user_id, role, db: Session, df: pd.DataFrame = None):
         """Get time series data for a parameter using report_date"""
-        df = self._get_limited_lab_values_df(user_id, role, db)
+        if df is None:
+            df = self._get_limited_lab_values_df(user_id, role, db)
 
         if df.empty:
             return []
@@ -415,7 +384,7 @@ class AnalyticsService:
         slope, _ = np.polyfit(x, values, 1)
         return slope
     
-    def get_parameter_analytics(self, parameter_name, user_id, role, db: Session):
+    def get_parameter_analytics(self, parameter_name, user_id, role, db: Session, df: pd.DataFrame = None):
         """
         Get analytics for a parameter with structured JSON output.
         
@@ -430,7 +399,7 @@ class AnalyticsService:
                 "slope": ...
             }
         """
-        series = self.get_test_timeseries(parameter_name, user_id, role, db)
+        series = self.get_test_timeseries(parameter_name, user_id, role, db, df=df)
 
         if not series:
             return {
@@ -455,6 +424,91 @@ class AnalyticsService:
             "min": metrics.get("min"),
             "max": metrics.get("max"),
             "slope": metrics.get("slope")
+        }
+
+    def get_health_trends_json(self, user_id: int, role: str, db: Session = None) -> dict:
+        """
+        Returns per-parameter timeseries analytics as JSON for Health Trends page.
+        Called by GET /api/analytics/health-trends-json
+
+        Returns:
+            {
+                "parameters": [
+                    {
+                        "parameter": "Hemoglobin",
+                        "unit": "g/dL",
+                        "analytics": {
+                            "values": [{"date": "...", "value": 12.5}, ...],
+                            "trend": "Stable",
+                            "avg": 12.3,
+                            "min": 11.0,
+                            "max": 13.5,
+                            "slope": 0.01
+                        },
+                        "risk": {
+                            "risk_level": "LOW",
+                            "confidence": "MEDIUM",
+                            ...
+                        }
+                    },
+                    ...
+                ],
+                "total_parameters": N
+            }
+        """
+        from services.risk_engine import RiskEngine
+        risk_engine = RiskEngine()
+
+        df = self._get_limited_lab_values_df(user_id, role, db)
+
+        if df.empty:
+            return {"parameters": [], "total_parameters": 0}
+
+        parameter_names = df["parameter_name"].unique().tolist()
+        parameters_out = []
+
+        for param_name in parameter_names:
+            analytics = self.get_parameter_analytics(param_name, user_id, role, db, df=df)
+
+            # Get unit from the most recent entry for this parameter
+            param_df = df[df["parameter_name"] == param_name].sort_values("date")
+            unit = param_df["unit"].iloc[-1] if not param_df.empty else ""
+
+            # Get abnormal_count for risk evaluation
+            abnormal_count = int(param_df["is_abnormal"].sum()) if "is_abnormal" in param_df.columns else 0
+
+            # Build risk input aligned with RiskEngine.evaluate() signature
+            risk_input = {
+                "parameter": param_name,
+                "values": [
+                    {
+                        "value": row["value"],
+                        "is_abnormal": bool(row["is_abnormal"]) if "is_abnormal" in row else False,
+                    }
+                    for _, row in param_df.iterrows()
+                ],
+                "trend": analytics.get("trend", "Unknown"),
+                "abnormal_count": abnormal_count,
+            }
+            risk = risk_engine.evaluate(risk_input)
+
+            parameters_out.append({
+                "parameter": param_name,
+                "unit": unit if unit else "",
+                "analytics": {
+                    "values": analytics.get("values", []),
+                    "trend": analytics.get("trend", "Unknown"),
+                    "avg": analytics.get("avg"),
+                    "min": analytics.get("min"),
+                    "max": analytics.get("max"),
+                    "slope": analytics.get("slope"),
+                },
+                "risk": risk,
+            })
+
+        return {
+            "parameters": parameters_out,
+            "total_parameters": len(parameters_out),
         }
 
     def get_health_summary_json(self, user_id: int, role: str, db: Session = None) -> dict:
@@ -530,52 +584,7 @@ class AnalyticsService:
         }
 
 
-    def get_correlation_json(self, user_id: int, role: str, db: Session = None) -> dict:
-        """
-        Returns the full Pearson correlation matrix + top pairs as JSON.
-        Called by GET /api/analytics/correlation-json
-        """
-        df = self._get_lab_values_df(user_id, role, None, None, db)
 
-        if df.empty:
-            return {"parameters": [], "matrix": [], "pairs": []}
-
-        # Pivot: rows = report_id, columns = parameter_name, values = numeric value
-        pivot = df.pivot_table(
-            index="report_id",
-            columns="parameter_name",
-            values="value",
-            aggfunc="mean",
-        )
-
-        if pivot.shape[1] < 2:
-            return {"parameters": [], "matrix": [], "pairs": []}
-
-        corr = pivot.corr(method="pearson").round(2).fillna(0)
-        params = list(corr.columns)
-
-        # ── flat pair list for the bar chart ─────────────────────────────────
-        pairs = []
-        for i, p1 in enumerate(params):
-            for j, p2 in enumerate(params):
-                if j <= i:
-                    continue
-                val = float(corr.loc[p1, p2])
-                pairs.append({
-                    "param1":    p1,
-                    "param2":    p2,
-                    "label":     f"{p1} & {p2}",
-                    "value":     round(val, 2),
-                    "abs_value": round(abs(val), 2),
-                })
-
-        pairs.sort(key=lambda x: x["abs_value"], reverse=True)
-
-        return {
-            "parameters": params,
-            "matrix":     corr.values.tolist(),   # 2-D list, row/col order = params
-            "pairs":      pairs[:10],              # top 10 for bar chart
-        }
 
 
     # ── private helpers (add alongside the methods above) ────────────────────

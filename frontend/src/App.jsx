@@ -13,7 +13,7 @@ import PatientDashboard from './pages/PatientDashboard'
 import PatientProfile from './pages/PatientProfile'
 import FindDoctors from './pages/FindDoctors'
 import HealthSummaryPage from './pages/HealthSummaryPage'
-import CorrelationPage from './pages/CorrelationPage'
+import HealthTrendsPage from './pages/HealthTrendsPage'
 import MedicalDashboard from './pages/MedicalDashboard'
 import Layout from './components/Layout'
 import { ToastProvider } from './components/Toast'
@@ -113,13 +113,14 @@ function AppRoutes() {
               }
             />
             <Route
-              path="analytics/correlation"
+              path="analytics/trends"
               element={
                 <RoleRoute requiredRole="patient">
-                  <CorrelationPage />
+                  <HealthTrendsPage />
                 </RoleRoute>
               }
             />
+            <Route path="analytics/correlation" element={<Navigate to="/analytics/trends" replace />} />
           </>
         )}
       </Route>

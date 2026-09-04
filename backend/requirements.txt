@@ -10,6 +10,7 @@ python-dotenv
 pytesseract
 easyocr
 pdf2image
+PyMuPDF
 Pillow
 torch
 pandas
@@ -25,7 +26,10 @@ langchain-ollama
 langchain-groq
 langchain-openai
 openai
+langchain-google-genai
+google-genai
 mcp
 chromadb
 httpx
+psutil
 

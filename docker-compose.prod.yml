@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  # Nginx Reverse Proxy (Public Entrypoint)
+  nginx:
+    image: nginx:alpine
+    container_name: medical_reports_nginx_prod
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - prod-network
+
+  # Production FastAPI Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medical_reports_backend_prod
+    restart: always
+    environment:
+      ENVIRONMENT: production
+      SECRET_KEY: ${SECRET_KEY}
+      DATABASE_URL: ${DATABASE_URL}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://your-production-domain.com}
+      DB_POOL_SIZE: ${DB_POOL_SIZE:-10}
+      DB_MAX_OVERFLOW: ${DB_MAX_OVERFLOW:-20}
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    volumes:
+      - prod_uploads_data:/app/uploads
+      - prod_charts_data:/app/charts
+    networks:
+      - prod-network
+
+networks:
+  prod-network:
+    driver: bridge
+
+volumes:
+  prod_uploads_data:
+  prod_charts_data:

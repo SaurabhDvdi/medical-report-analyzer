@@ -7,7 +7,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AI
 from langchain_core.tools import StructuredTool
 from langgraph.graph import StateGraph, END
 
-from ai.llm_service import LLMService
+from ai.llm_service import LLMService, extract_clean_text
 from ai.suggestion_service import SuggestionService
 from mcp.client import MCPClient
 from mcp.tools import SecurityContext
@@ -446,10 +446,19 @@ class ClinicalAssistantAgent:
             "   Use `get_my_patient_count`, `get_my_patients`, or `search_my_patients`.\n"
             "6. Doctor Specific Patient Lookup ('Tell me about Rahul Sharma', 'What is Rahul's HbA1c?'):\n"
             "   ALWAYS call `resolve_my_patient(name=...)` FIRST to verify authorization and resolve patient ID.\n"
-            "7. Clinical Interpretation Safety:\n"
-            "   - State verified facts from lab data (e.g. value, reference range, abnormal flag).\n"
-            "   - Do NOT invent unverified disease diagnoses or potential causes (e.g. 'may indicate a blood disorder') unless explicitly supported by trusted medical knowledge retrieval.\n"
-            "   - Prefer neutral, professional explanations such as: 'Your basophil value is below the reference range shown in the report. The significance depends on clinical context and should be evaluated by your healthcare professional.'"
+            "7. REPORT EXPLANATION & SUMMARY Queries ('Explain my latest report', 'Summarize my lab report', 'What are my lab results?'):\n"
+            "   - You MUST call `get_patient_history` or `get_my_reports` FIRST to retrieve the patient's uploaded reports.\n"
+            "   - NEVER ask the user to provide a report ID manually when they ask to explain their latest report or summarize their reports.\n"
+            "   - If reports ARE found in the database, automatically summarize the key findings, extracted measurements, and reference ranges from the most recent report(s).\n"
+            "   - If NO reports exist in the database (0 uploaded reports), reply clearly: 'No medical reports have been uploaded yet. Please upload your medical reports to view health summaries and lab insights.'\n"
+            "8. Clinical Interpretation & Medical Safety Rules:\n"
+            "   - State verified facts directly from tool/database results (parameter value, unit, reference range, status).\n"
+            "   - NEVER invent or modify patient information, laboratory measurements, dates, or medicines.\n"
+            "   - Strictly distinguish factual lab measurements from clinical interpretation.\n"
+            "   - Do NOT present yourself as a practicing licensed physician or provide definitive medical diagnoses.\n"
+            "   - Do NOT advise starting, stopping, or altering any medication dosage or treatment plan.\n"
+            "   - When information is incomplete or missing, explicitly state that data is unavailable.\n"
+            "   - Always recommend consulting a licensed medical professional for definitive clinical evaluation."
         )
 
         user_content = query
@@ -485,7 +494,7 @@ class ClinicalAssistantAgent:
             final_answer = final_state["final_answer"]
         else:
             last_msg = final_state["messages"][-1]
-            final_answer = str(last_msg.content) if last_msg and last_msg.content else "No response generated."
+            final_answer = extract_clean_text(last_msg.content) if last_msg and last_msg.content else "No response generated."
 
         tools_used = list(set(final_state.get("tools_used", [])))
         resolved_name = final_state.get("resolved_patient_name")

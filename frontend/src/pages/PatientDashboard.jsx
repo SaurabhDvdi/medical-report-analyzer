@@ -1,8 +1,25 @@
 import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Heart, Pill, AlertCircle, TrendingUp, FileText, Activity, Loader, Stethoscope, UserCheck } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import {
+  Heart,
+  Pill,
+  AlertTriangle,
+  TrendingUp,
+  FileText,
+  Activity,
+  Stethoscope,
+  UserCheck,
+  ChevronRight,
+  Shield,
+  Search,
+  CheckCircle2,
+  Clock,
+  XCircle,
+  Plus
+} from 'lucide-react'
 import { useToast } from '../components/Toast'
+import { useAuth } from '../contexts/AuthContext'
+import { DashboardSkeleton } from '../components/Skeletons'
 import {
   getProfile,
   getMedicines,
@@ -11,12 +28,10 @@ import {
   grantDoctorAccess,
   revokeDoctorAccess
 } from '../services/userService'
-
 import { getReportsSummary } from '../services/reportService'
-import AIAssistantModal from '../components/AIAssistantModal'
 
 export default function PatientDashboard() {
-  const navigate = useNavigate()
+  const { user } = useAuth()
   const { showToast } = useToast()
   const queryClient = useQueryClient()
 
@@ -24,7 +39,7 @@ export default function PatientDashboard() {
   const { data: profile, isLoading: profileLoading } = useQuery({
     queryKey: ['profile'],
     queryFn: getProfile,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     onError: (error) => {
       showToast(error.response?.data?.detail || 'Failed to load profile', 'error')
     }
@@ -34,17 +49,17 @@ export default function PatientDashboard() {
   const { data: medicines, isLoading: medicinesLoading } = useQuery({
     queryKey: ['medicines'],
     queryFn: getMedicines,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error) => {
+    staleTime: 5 * 60 * 1000,
+    onError: () => {
       showToast('Failed to load medicines', 'error')
     }
   })
 
-  // Reports summary query (replaces N+1 calls)
+  // Reports summary query
   const { data: reportsSummary, isLoading: reportsLoading } = useQuery({
     queryKey: ['reports-summary'],
     queryFn: getReportsSummary,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     onError: (error) => {
       showToast(error.response?.data?.detail || 'Failed to load reports', 'error')
     }
@@ -54,18 +69,18 @@ export default function PatientDashboard() {
   const { data: discovery = { total_doctors_on_platform: 0, your_active_doctors: 0 }, isLoading: discoveryLoading } = useQuery({
     queryKey: ['discovery-stats'],
     queryFn: getDiscoveryStats,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000,
     onError: (error) => {
       console.error('Discovery stats error:', error)
     }
   })
 
   // Doctor access query
-  const { data: doctorAccess = [], isLoading: doctorAccessLoading, refetch: refetchDoctorAccess } = useQuery({
+  const { data: doctorAccess = [], isLoading: doctorAccessLoading } = useQuery({
     queryKey: ['doctor-access'],
     queryFn: getDoctorAccess,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    onError: (error) => {
+    staleTime: 5 * 60 * 1000,
+    onError: () => {
       showToast('Failed to load doctor access', 'error')
     }
   })
@@ -98,7 +113,7 @@ export default function PatientDashboard() {
   // Combined loading state
   const isLoading = profileLoading || medicinesLoading || reportsLoading || discoveryLoading || doctorAccessLoading
 
-  // Calculate stats from aggregated data
+  // Stats calculation
   const stats = {
     activeMedicines: medicines?.filter((m) => m.status === 'current').length || 0,
     abnormalValues: reportsSummary?.abnormal_count || 0,
@@ -106,7 +121,6 @@ export default function PatientDashboard() {
     recentReports: reportsSummary?.recent_reports || [],
   }
 
-  // Handle doctor access actions
   const handleGrantAccess = (doctorId) => {
     grantAccessMutation.mutate(doctorId)
   }
@@ -115,186 +129,258 @@ export default function PatientDashboard() {
     revokeAccessMutation.mutate(accessId)
   }
 
-
-
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Patient Dashboard</h1>
-          <p>Loading dashboard...</p>
-        </div>
-      </div>
-    )
+    return <DashboardSkeleton />
   }
 
   return (
-    <div className="px-4 py-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Health Dashboard</h1>
-          <p className="text-gray-600">Welcome back! Here&apos;s your health overview</p>
+    <div className="space-y-6">
+      {/* Top Banner / Welcome */}
+      <div className="bg-gradient-to-r from-teal-700 via-teal-800 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-lg relative overflow-hidden">
+        <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="relative z-10 max-w-3xl space-y-3">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-teal-500/20 border border-teal-400/30 text-teal-200">
+            <Activity className="w-3.5 h-3.5" /> Clinical Health Overview
+          </span>
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+            Welcome back, {profile?.full_name || user?.full_name || user?.name || 'Patient'}
+          </h1>
+          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
+            Your personal medical intelligence workspace. Track lab parameter shifts over time, monitor medication regimens, and consult authorized clinical specialists.
+          </p>
+        </div>
+      </div>
+
+      {/* Top Metrics Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Reports */}
+        <div className="clinical-card p-5 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Reports</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.totalReports}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Uploaded PDF & Image documents</p>
+          </div>
+          <div className="p-3 bg-teal-50 text-teal-600 rounded-xl border border-teal-100">
+            <FileText className="w-6 h-6" />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center">
-              <Stethoscope className="h-8 w-8 text-teal-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total doctors available</p>
-                <p className="text-2xl font-bold text-gray-900">{discovery.total_doctors_on_platform}</p>
-                <p className="text-xs text-gray-500">On the platform</p>
-              </div>
-            </div>
+        {/* Abnormal Biomarkers */}
+        <div className="clinical-card p-5 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Abnormal Flags</p>
+            <p className="text-2xl font-extrabold text-rose-600">{stats.abnormalValues}</p>
+            <p className="text-[11px] text-rose-600/80 font-medium">Out-of-range lab observations</p>
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center">
-              <UserCheck className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Your active doctors</p>
-                <p className="text-2xl font-bold text-gray-900">{discovery.your_active_doctors}</p>
-                <p className="text-xs text-gray-500">Approved access</p>
-              </div>
-            </div>
+          <div className="p-3 bg-rose-50 text-rose-600 rounded-xl border border-rose-100">
+            <AlertTriangle className="w-6 h-6" />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center">
-              <Pill className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Active Medicines</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.activeMedicines}</p>
-              </div>
-            </div>
+        {/* Active Regimens */}
+        <div className="clinical-card p-5 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Regimens</p>
+            <p className="text-2xl font-extrabold text-slate-900">{stats.activeMedicines}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Current prescribed medications</p>
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center">
-              <AlertCircle className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Abnormal Values</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.abnormalValues}</p>
-                <p className="text-xs text-gray-500">Across all reports</p>
-              </div>
-            </div>
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-xl border border-indigo-100">
+            <Pill className="w-6 h-6" />
           </div>
-
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600">Total Reports</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalReports}</p>
-              </div>
-            </div>
-          </div>
-
-          {profile && profile.bmi && (
-            <div className="bg-white p-6 rounded-lg shadow-md">
-              <div className="flex items-center">
-                <Activity className="h-8 w-8 text-purple-600" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">BMI</p>
-                  <p className="text-2xl font-bold text-gray-900">{profile.bmi.toFixed(1)}</p>
-                  <p className="text-xs text-gray-500">
-                    {profile.bmi < 18.5
-                      ? 'Underweight'
-                      : profile.bmi < 25
-                      ? 'Normal'
-                      : profile.bmi < 30
-                      ? 'Overweight'
-                      : 'Obese'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <Link to="/analytics/health-summary" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg block">
-            <div className="flex items-center">
-              <TrendingUp className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Health Summary</h3>
-                <p className="text-sm text-gray-600">View detailed health insights and trends based on your reports.</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link to="/analytics/correlation" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg block">
-            <div className="flex items-center">
-              <Activity className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Lab Correlation</h3>
-                <p className="text-sm text-gray-600">Analyze relationships between different lab parameters.</p>
-              </div>
-            </div>
-          </Link>
+        {/* BMI / Clinical Metrics */}
+        <div className="clinical-card p-5 flex items-center justify-between">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Active Doctors</p>
+            <p className="text-2xl font-extrabold text-emerald-600">{discovery.your_active_doctors}</p>
+            <p className="text-[11px] text-slate-500 font-medium">Out of {discovery.total_doctors_on_platform} on platform</p>
+          </div>
+          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100">
+            <UserCheck className="w-6 h-6" />
+          </div>
         </div>
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">
-            Doctor Access Management
-          </h2>
-          <p className="text-sm text-gray-600 mb-4">
-            Doctors can only view your reports, lab values, and notes while access
-            is <span className="font-medium">approved</span>. If you revoke access,
-            they lose visibility immediately.
+      </div>
+
+      {/* Analytics Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Link
+          to="/analytics/health-summary"
+          className="clinical-card p-6 flex items-start gap-4 group hover:border-teal-300 transition-all"
+        >
+          <div className="p-3 bg-teal-50 text-teal-600 rounded-xl border border-teal-100 group-hover:scale-105 transition-transform">
+            <TrendingUp className="w-6 h-6" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-base group-hover:text-teal-700 transition-colors">
+                Biomarker Health Insights
+              </h3>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-teal-600 group-hover:translate-x-0.5 transition-all" />
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Explore interactive longitudinal charts, lab value changes across time, and abnormal parameter shifts.
+            </p>
+          </div>
+        </Link>
+
+        <Link
+          to="/analytics/trends"
+          className="clinical-card p-6 flex items-start gap-4 group hover:border-teal-300 transition-all"
+        >
+          <div className="p-3 bg-purple-50 text-purple-600 rounded-xl border border-purple-100 group-hover:scale-105 transition-transform">
+            <Activity className="w-6 h-6" />
+          </div>
+          <div className="flex-1 space-y-1">
+            <div className="flex items-center justify-between">
+              <h3 className="font-bold text-slate-900 text-base group-hover:text-purple-700 transition-colors">
+                Health Trends & Trajectories
+              </h3>
+              <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Track biomarker shifts, parameter trajectories, and longitudinal health changes over time.
+            </p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Main Content Grid: Recent Reports & Doctor Access Management */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Recent Reports List (2 Cols) */}
+        <div className="lg:col-span-2 clinical-card overflow-hidden flex flex-col">
+          <div className="p-5 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-teal-600" />
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">Recent Medical Reports</h3>
+            </div>
+            <Link
+              to="/reports"
+              className="text-xs font-semibold text-teal-700 hover:text-teal-800 flex items-center gap-1"
+            >
+              View All <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="divide-y divide-slate-100 flex-1">
+            {stats.recentReports.length === 0 ? (
+              <div className="p-8 text-center space-y-3">
+                <FileText className="w-10 h-10 text-slate-300 mx-auto" />
+                <p className="text-sm font-medium text-slate-600">No medical reports uploaded yet.</p>
+                <Link
+                  to="/reports"
+                  className="clinical-button-primary inline-flex items-center gap-1 text-xs"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Upload First Report
+                </Link>
+              </div>
+            ) : (
+              stats.recentReports.map((report) => (
+                <Link
+                  key={report.id}
+                  to={`/reports/${report.id}`}
+                  className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors group"
+                >
+                  <div className="space-y-1 min-w-0 pr-4">
+                    <p className="text-sm font-semibold text-slate-900 group-hover:text-teal-700 transition-colors truncate">
+                      {report.file_name}
+                    </p>
+                    <p className="text-[11px] text-slate-400 flex items-center gap-2">
+                      <span>Uploaded {new Date(report.upload_date).toLocaleDateString()}</span>
+                    </p>
+                    {report.ai_summary && (
+                      <p className="text-xs text-slate-600 line-clamp-1 italic">
+                        &quot;{report.ai_summary}&quot;
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={
+                      report.ocr_status === 'completed'
+                        ? 'clinical-badge-normal'
+                        : report.ocr_status === 'failed'
+                        ? 'clinical-badge-high'
+                        : 'clinical-badge-low'
+                    }
+                  >
+                    {report.ocr_status === 'completed' && <CheckCircle2 className="w-3 h-3 mr-1" />}
+                    {report.ocr_status === 'failed' && <XCircle className="w-3 h-3 mr-1" />}
+                    {report.ocr_status === 'processing' && <Clock className="w-3 h-3 mr-1 animate-spin" />}
+                    {report.ocr_status}
+                  </span>
+                </Link>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Doctor Access Care Sidebar (1 Col) */}
+        <div className="clinical-card p-5 flex flex-col space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-slate-900 text-sm sm:text-base">Care Team Access</h3>
+            </div>
+            <Link to="/find-doctors" className="text-xs font-semibold text-indigo-600 hover:text-indigo-800">
+              Browse Directory
+            </Link>
+          </div>
+
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Authorized doctors have explicit clinical access to your lab parameters and reports. You can revoke authorization at any time.
           </p>
 
-          {doctorAccessLoading ? (
-            <div className="py-6 text-center text-gray-600">Loading access...</div>
-          ) : doctorAccess.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-gray-600 mb-3">No doctor access requests yet.</p>
-              <Link
-                to="/find-doctors"
-                className="text-blue-600 hover:text-blue-800 font-medium"
-              >
-                Find Doctors
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {doctorAccess.map((row) => {
+          <div className="space-y-3 flex-1">
+            {doctorAccess.length === 0 ? (
+              <div className="p-6 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50 space-y-2">
+                <Stethoscope className="w-8 h-8 text-slate-300 mx-auto" />
+                <p className="text-xs text-slate-600 font-medium">No active doctor access requests.</p>
+                <Link to="/find-doctors" className="text-xs font-semibold text-teal-700 hover:underline block">
+                  Find & Request Doctor Access
+                </Link>
+              </div>
+            ) : (
+              doctorAccess.map((row) => {
                 const status = row.status === 'accepted' ? 'approved' : row.status
-                const badgeClass =
-                  status === 'approved'
-                    ? 'bg-green-100 text-green-800'
-                    : status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : status === 'revoked'
-                    ? 'bg-red-100 text-red-800'
-                    : 'bg-gray-100 text-gray-700'
+                const isApproved = status === 'approved'
+                const isPending = status === 'pending'
 
                 return (
                   <div
                     key={row.id}
-                    className="flex flex-wrap items-center justify-between gap-3 border border-gray-200 rounded-lg px-4 py-3"
+                    className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2"
                   >
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {row.doctor_name || `Doctor #${row.doctor_id}`}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Status:{' '}
-                        <span className={`px-2 py-0.5 rounded ${badgeClass}`}>
-                          {status}
-                        </span>
-                      </p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">
+                          {row.doctor_full_name || row.doctor_email || `Doctor #${row.doctor_id}`}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {row.doctor_category ? `${row.doctor_category} · ${row.doctor_specialty || ''}` : 'Specialist'}
+                        </p>
+                      </div>
+                      <span
+                        className={
+                          isApproved
+                            ? 'clinical-badge-normal'
+                            : isPending
+                            ? 'clinical-badge-low'
+                            : 'clinical-badge-high'
+                        }
+                      >
+                        {status}
+                      </span>
                     </div>
 
-                    <div className="flex gap-2">
-                      {(status === 'approved' || status === 'pending') && (
+                    <div className="pt-1 flex justify-end">
+                      {(isApproved || isPending) && (
                         <button
                           type="button"
                           disabled={revokeAccessMutation.isLoading}
                           onClick={() => handleRevokeAccess(row.id)}
-                          className="px-3 py-1.5 rounded-md text-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                          className="px-2.5 py-1 text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded-lg transition-colors disabled:opacity-50"
                         >
-                          {revokeAccessMutation.isLoading ? 'Revoking...' : 'Revoke'}
+                          {revokeAccessMutation.isLoading ? 'Revoking...' : 'Revoke Access'}
                         </button>
                       )}
 
@@ -303,118 +389,19 @@ export default function PatientDashboard() {
                           type="button"
                           disabled={grantAccessMutation.isLoading}
                           onClick={() => handleGrantAccess(row.doctor_id)}
-                          className="px-3 py-1.5 rounded-md text-sm bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50"
+                          className="px-2.5 py-1 text-[11px] font-semibold bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100 rounded-lg transition-colors disabled:opacity-50"
                         >
-                          {grantAccessMutation.isLoading
-                            ? 'Requesting...'
-                            : 'Grant Access'}
+                          {grantAccessMutation.isLoading ? 'Requesting...' : 'Grant Access'}
                         </button>
                       )}
                     </div>
                   </div>
                 )
-              })}
-            </div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md mb-8">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-gray-900">Recent Reports</h2>
-            <Link
-              to="/reports"
-              className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-            >
-              View All →
-            </Link>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {stats.recentReports.length === 0 ? (
-              <div className="px-6 py-12 text-center text-gray-500">
-                <FileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p>No reports yet.</p>
-                <Link to="/reports" className="text-blue-600 hover:underline mt-2 inline-block">
-                  Upload your first report
-                </Link>
-              </div>
-            ) : (
-              stats.recentReports.map((report) => (
-                <Link
-                  key={report.id}
-                  to={`/reports/${report.id}`}
-                  className="block px-6 py-4 hover:bg-blue-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">{report.file_name}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(report.upload_date).toLocaleDateString()}
-                      </p>
-                      {report.ai_summary && (
-                        <p className="text-sm text-gray-600 mt-1 line-clamp-1">
-                          {report.ai_summary}
-                        </p>
-                      )}
-                    </div>
-                    <span
-                      className={`px-3 py-1 text-xs rounded-full ${
-                        report.ocr_status === 'completed'
-                          ? 'bg-green-100 text-green-800'
-                          : report.ocr_status === 'failed'
-                          ? 'bg-red-100 text-red-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}
-                    >
-                      {report.ocr_status}
-                    </span>
-                  </div>
-                </Link>
-              ))
+              })
             )}
           </div>
         </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Link to="/find-doctors" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-            <div className="flex items-center">
-              <Stethoscope className="h-8 w-8 text-blue-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Find Doctors</h3>
-                <p className="text-sm text-gray-600">Search by name, category, and specialty</p>
-              </div>
-            </div>
-          </Link>
-          <Link to="/reports" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-            <div className="flex items-center">
-              <FileText className="h-8 w-8 text-green-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">View Reports</h3>
-                <p className="text-sm text-gray-600">See all your medical reports and lab results</p>
-              </div>
-            </div>
-          </Link>
-          <Link to="/medicines" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-            <div className="flex items-center">
-              <Pill className="h-8 w-8 text-purple-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Manage Medicines</h3>
-                <p className="text-sm text-gray-600">Track your current and past medications</p>
-              </div>
-            </div>
-          </Link>
-          <Link to="/profile" className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg">
-            <div className="flex items-center">
-              <Heart className="h-8 w-8 text-red-600" />
-              <div className="ml-4">
-                <h3 className="text-lg font-semibold text-gray-900">Update Profile</h3>
-                <p className="text-sm text-gray-600">Keep your health information up to date</p>
-              </div>
-            </div>
-          </Link>
-        </div>
-        <AIAssistantModal role="patient" />
       </div>
     </div>
   )
 }
-

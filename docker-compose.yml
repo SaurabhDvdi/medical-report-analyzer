@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # MySQL Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: medical_reports_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-medical_report_analysis}
+      MYSQL_USER: ${DB_USER:-root}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  # FastAPI Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: medical_reports_backend
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: development
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      DATABASE_URL: mysql+pymysql://${DB_USER:-root}:${DB_PASSWORD:-root}@mysql:3306/${DB_NAME:-medical_report_analysis}
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:80
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      GROQ_API_KEY: ${GROQ_API_KEY:-your_groq_api_key_here}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
+      - charts_data:/app/charts
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # Frontend SPA Development Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:8000
+    container_name: medical_reports_frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  uploads_data:
+  charts_data:

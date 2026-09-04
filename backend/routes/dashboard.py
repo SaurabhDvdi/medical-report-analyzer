@@ -1,8 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import distinct
-from datetime import datetime
-from models import LabValue, Report, User, PatientDoctorAccess
+from database import get_db
 from auth import get_current_user
 from services.analytics_service import AnalyticsService
 from services.risk_engine import RiskEngine
@@ -19,97 +17,76 @@ risk_engine = RiskEngine()
 insights_engine = InsightsEngine()
 
 
-def get_db():
-    """Placeholder - actual DB dependency passed from main.py"""
-    pass
-
-
 @router.get("")
 async def get_dashboard(
     parameter: str = Query(None),
-    db: Session = Depends(lambda: None),  # Will be overridden in main.py
+    limit: int = 20,
     current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    Get comprehensive dashboard data with analytics, risk, and insights.
+    Get dashboard intelligence: analytics + risk + insights for all parameters.
     
-    Optionally filter by parameter name.
-    
-    Returns:
-        {
-            "parameters": [
-                {
-                    "parameter": "HbA1c",
-                    "analytics": {...},
-                    "risk": {...},
-                    "insights": {...}
-                },
-                ...
-            ]
-        }
+    Optional query params:
+    - parameter: if provided, return only that specific parameter
+    - limit: maximum number of parameters to return (default: 20, max: 50)
     """
-    try:
-        user_id = current_user["user_id"]
-        role = current_user.get("role", "patient")
-
-        # Get unique parameters
-        query = (
-            db.query(distinct(LabValue.parameter_name))
-            .join(Report)
+    limit = min(limit, 50)
+    
+    # Get lab values dataframe using pre-fetched 1-query optimization
+    df = analytics_service._get_lab_values_df(
+        current_user["id"],
+        current_user["role"],
+        None,
+        None,
+        db
+    )
+    
+    if df.empty:
+        return {
+            "user_id": current_user["id"],
+            "parameters": []
+        }
+    
+    unique_parameters = df["parameter_name"].dropna().unique().tolist()
+    
+    if parameter:
+        if parameter not in unique_parameters:
+            return {
+                "user_id": current_user["id"],
+                "parameters": []
+            }
+        unique_parameters = [parameter]
+    else:
+        unique_parameters = sorted(unique_parameters)
+        param_counts = df["parameter_name"].value_counts()
+        limited_params = param_counts.head(limit).index.tolist()
+        unique_parameters = [p for p in limited_params if p in unique_parameters]
+    
+    parameters_data = []
+    for param in unique_parameters:
+        analytics = analytics_service.get_parameter_analytics(
+            param,
+            current_user["id"],
+            current_user["role"],
+            db,
+            df=df
         )
-
-        if role != "doctor":
-            query = query.filter(Report.user_id == user_id)
-        else:
-            # Doctors can only see lab values for patients with approved access
-            query = (
-                query.join(
-                    PatientDoctorAccess,
-                    PatientDoctorAccess.patient_id == Report.user_id,
-                )
-                .filter(
-                    PatientDoctorAccess.doctor_id == user_id,
-                    PatientDoctorAccess.status.in_(["approved", "accepted"]),
-                )
-            )
-
-        # Filter by parameter if specified
-        if parameter:
-            query = query.filter(LabValue.parameter_name == parameter)
-
-        parameters = [row[0] for row in query.all()]
-
-        if not parameters:
-            return {"parameters": []}
-
-        # For each parameter, get analytics, risk, and insights
-        dashboard_data = []
-
-        for param in parameters:
-            try:
-                # Get analytics
-                analytics = analytics_service.get_parameter_analytics(
-                    param, user_id, role, db
-                )
-
-                # Get risk assessment
-                risk = risk_engine.evaluate(analytics)
-
-                # Get insights
-                insights = insights_engine.generate(analytics, risk)
-
-                dashboard_data.append({
-                    "parameter": param,
-                    "analytics": analytics,
-                    "risk": risk,
-                    "insights": insights,
-                })
-            except Exception as e:
-                # Log error but continue with other parameters
-                print(f"Error processing parameter {param}: {str(e)}")
-                continue
-
-        return {"parameters": dashboard_data}
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        
+        if not analytics.get("values"):
+            continue
+        
+        risk = risk_engine.evaluate(analytics)
+        insights = insights_engine.generate(analytics, risk)
+        
+        parameters_data.append({
+            "parameter": param,
+            "analytics": analytics,
+            "risk": risk,
+            "insights": insights
+        })
+    
+    return {
+        "user_id": current_user["id"],
+        "parameters": parameters_data
+    }

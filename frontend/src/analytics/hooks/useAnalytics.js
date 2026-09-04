@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
-import { getHealthSummaryJson, getCorrelationJson, getParameterTrend } from '../../services/analyticsService'
+import { getHealthSummaryJson, getParameterTrend } from '../../services/analyticsService'
 
 // Hook for health summary JSON data
 export const useHealthSummaryJson = () => {
@@ -7,15 +7,6 @@ export const useHealthSummaryJson = () => {
     queryKey: ['healthSummaryJson'],
     queryFn: getHealthSummaryJson,
     staleTime: 1000 * 60 * 5, // 5 minutes
-  })
-}
-
-// Hook for parameter correlation JSON data
-export const useCorrelationJson = () => {
-  return useQuery({
-    queryKey: ['correlationJson'],
-    queryFn: getCorrelationJson,
-    staleTime: 1000 * 60 * 5,
   })
 }
 
@@ -27,4 +18,4 @@ export const useParameterTrend = (parameterName) => {
     enabled: Boolean(parameterName),
     staleTime: 1000 * 60 * 5,
   })
-}
+}

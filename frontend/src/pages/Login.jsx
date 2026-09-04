@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { FormInput } from '../components/FormComponents'
 import { useToast } from '../components/Toast'
-import { motion } from 'framer-motion'
+import { Activity, ShieldCheck, ArrowRight, Lock, Mail } from 'lucide-react'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -21,84 +20,96 @@ export default function Login() {
     setLoading(false)
 
     if (result.success) {
-      showToast('Welcome back! Login successful.', 'success')
+      showToast('Welcome back! Authentication successful.', 'success')
       navigate('/dashboard')
     } else {
-      showToast(result.error || 'Login failed. Please try again.', 'error')
+      showToast(result.error || 'Login failed. Please check credentials.', 'error')
     }
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8"
-    >
-      <div className="max-w-md w-full space-y-8">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/register" className="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-              create a new account
-            </Link>
-          </p>
-        </motion.div>
-        <motion.form
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3, delay: 0.2 }}
-          className="mt-8 space-y-6"
-          onSubmit={handleSubmit}
-        >
-          <div className="space-y-4">
-            <FormInput
-              label="Email address"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              disabled={loading}
-            />
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Glow ambient background element */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <FormInput
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            {loading ? (
-              <div className="flex items-center">
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Signing in...
-              </div>
-            ) : (
-              'Sign in'
-            )}
-          </motion.button>
-        </motion.form>
+      <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-4 text-center relative z-10">
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 font-bold text-base">
+          <Activity className="w-6 h-6 animate-pulse" />
+          <span>MedPulse AI Platform</span>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+          Sign In to Clinical Portal
+        </h2>
+        <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          Grounded medical report analytics & secure physician access workspace
+        </p>
       </div>
-    </motion.div>
+
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
+              <div className="relative">
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <input
+                  type="email"
+                  required
+                  disabled={loading}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="name@healthcare.org"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Account Password</label>
+              <div className="relative">
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                <input
+                  type="password"
+                  required
+                  disabled={loading}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 active:bg-teal-800 text-white font-semibold text-xs rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {loading ? (
+                <span>Verifying Credentials...</span>
+              ) : (
+                <>
+                  <span>Sign In to Workspace</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="pt-4 border-t border-slate-800 text-center space-y-2">
+            <p className="text-xs text-slate-400">
+              New to MedPulse AI?{' '}
+              <Link to="/register" className="font-semibold text-teal-400 hover:text-teal-300 transition-colors">
+                Create an account
+              </Link>
+            </p>
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-500" />
+              <span>HIPAA Compliant & Encrypted Portal</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
-

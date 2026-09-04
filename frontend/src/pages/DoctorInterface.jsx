@@ -1,29 +1,39 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../utils/api'
+import { getPatients, getPatientDetail, getDoctorNotes, createDoctorNote } from '../services/userService'
 import { useAuth } from '../contexts/AuthContext'
 import ReactQuill from 'react-quill'
 import 'react-quill/dist/quill.snow.css'
-import { User, Save, Search, ArrowLeft, AlertTriangle, StickyNote } from 'lucide-react'
+import {
+  User,
+  Save,
+  Search,
+  ArrowLeft,
+  AlertTriangle,
+  StickyNote,
+  FileText,
+  Clock,
+  ShieldCheck,
+  CheckCircle2,
+  ChevronRight,
+  Pill
+} from 'lucide-react'
 import AIAssistantModal from '../components/AIAssistantModal'
-
+import { TableSkeleton, DashboardSkeleton } from '../components/Skeletons'
 
 export default function DoctorInterface() {
   const { user } = useAuth()
   const { id } = useParams()
   const navigate = useNavigate()
-  const [patients, setPatients] = useState([])
+  const queryClient = useQueryClient()
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedPatient, setSelectedPatient] = useState(id ? parseInt(id, 10) : null)
-  const [patientData, setPatientData] = useState(null)
   const [noteText, setNoteText] = useState('')
   const [showNoteEditor, setShowNoteEditor] = useState(false)
   const [contextReportId, setContextReportId] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [listError, setListError] = useState('')
-  const [accessError, setAccessError] = useState('')
   const [saveError, setSaveError] = useState('')
-  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (id) {
@@ -31,96 +41,71 @@ export default function DoctorInterface() {
     }
   }, [id])
 
-  const fetchPatients = useCallback(async () => {
-    if (user?.role !== 'doctor') return
-    setListError('')
-    try {
-      const response = await api.get('/api/users/patients', {
-        params: searchTerm ? { search: searchTerm } : {},
-      })
-      setPatients(response.data)
-    } catch (error) {
-      console.error('Error fetching patients:', error)
-      setListError(
-        error.response?.data?.detail || 'Unable to load patients.'
-      )
-    } finally {
-      setLoading(false)
-    }
-  }, [user?.role, searchTerm])
+  // 1. Patients query
+  const { data: patients = [], isLoading: patientsLoading, error: patientsErr } = useQuery({
+    queryKey: ['patients', searchTerm],
+    queryFn: () => getPatients(searchTerm ? { search: searchTerm } : {}),
+    enabled: user?.role === 'doctor',
+    staleTime: 2 * 60 * 1000,
+  })
 
-  useEffect(() => {
-    if (user?.role !== 'doctor') return
-    fetchPatients()
-  }, [user?.role, fetchPatients])
-
-  const fetchPatientData = useCallback(async () => {
-    if (!selectedPatient || user?.role !== 'doctor') return
-
-    try {
-      setAccessError('')
-      const detailRes = await api.get(`/api/doctor/patient/${selectedPatient}`)
+  // 2. Patient Detail query
+  const { data: rawPatientData, isLoading: detailLoading, error: detailErr } = useQuery({
+    queryKey: ['patient-detail', selectedPatient],
+    queryFn: async () => {
+      if (!selectedPatient) return null
+      const detail = await getPatientDetail(selectedPatient)
       let notes = []
       try {
-        const notesRes = await api.get('/api/doctor-notes', {
-          params: { patient_id: selectedPatient },
-        })
-        notes = notesRes.data
-      } catch (noteErr) {
-        console.error('Error fetching doctor notes:', noteErr)
+        notes = await getDoctorNotes({ patient_id: selectedPatient })
+      } catch (e) {
+        console.error('Error fetching doctor notes:', e)
       }
-      setPatientData({
-        ...detailRes.data,
-        notes,
-      })
-    } catch (error) {
-      console.error('Error fetching patient data:', error)
-      if (error.response?.status === 403) {
-        setAccessError('Access not granted. This patient’s access was revoked.')
-      } else {
-        setAccessError(
-          error.response?.data?.detail ||
-            'Unable to load patient details.'
-        )
-      }
-      setPatientData(null)
-    }
-  }, [selectedPatient, user?.role])
+      return { ...detail, notes: Array.isArray(notes) ? notes : (notes.data || []) }
+    },
+    enabled: !!selectedPatient && user?.role === 'doctor',
+    staleTime: 2 * 60 * 1000,
+  })
 
-  useEffect(() => {
-    if (selectedPatient && user?.role === 'doctor') {
-      fetchPatientData()
-    }
-  }, [selectedPatient, user?.role, fetchPatientData])
+  const loading = patientsLoading
+  const listError = patientsErr ? (patientsErr.response?.data?.detail || 'Unable to load patients.') : ''
+  const accessError = detailErr ? (
+    detailErr.response?.status === 403
+      ? 'Access not granted. This patient’s access was revoked.'
+      : (detailErr.response?.data?.detail || 'Unable to load patient details.')
+  ) : ''
 
-  const handleSaveNote = async () => {
-    if (!noteText.trim() || !selectedPatient || user?.role !== 'doctor') return
-    setSaveError('')
-    setSaving(true)
-    try {
-      const body = {
-        doctor_id: user.id,
-        patient_id: selectedPatient,
-        note_text: noteText,
-      }
-      if (contextReportId != null) {
-        body.report_id = contextReportId
-      }
-      await api.post('/api/doctor-notes', body)
+  const patientData = rawPatientData || null
 
+  // Save Note Mutation
+  const saveNoteMutation = useMutation({
+    mutationFn: (body) => createDoctorNote(body),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patient-detail', selectedPatient] })
       setNoteText('')
       setShowNoteEditor(false)
       setContextReportId(null)
-      await fetchPatientData()
-    } catch (error) {
-      console.error('Error saving note:', error)
-      setSaveError(
-        error.response?.data?.detail || 'Error saving note. Please try again.'
-      )
-    } finally {
-      setSaving(false)
+    },
+    onError: (err) => {
+      setSaveError(err.response?.data?.detail || 'Error saving note. Please try again.')
     }
+  })
+
+  const handleSaveNote = () => {
+    if (!noteText.trim() || !selectedPatient || user?.role !== 'doctor') return
+    setSaveError('')
+    const body = {
+      doctor_id: user.id,
+      patient_id: selectedPatient,
+      note_text: noteText,
+    }
+    if (contextReportId != null) {
+      body.report_id = contextReportId
+    }
+    saveNoteMutation.mutate(body)
   }
+
+  const saving = saveNoteMutation.isPending
 
   const openReportNote = (reportId) => {
     setContextReportId(reportId)
@@ -152,294 +137,333 @@ export default function DoctorInterface() {
   }
 
   if (loading && !listError) {
-    return <div className="text-center py-12">Loading...</div>
+    return <DashboardSkeleton />
   }
 
   if (id) {
+    if (detailLoading) {
+      return <DashboardSkeleton />
+    }
+
     if (!patientData) {
       return (
-        <div className="text-center py-12 px-4">
+        <div className="clinical-card p-12 text-center space-y-4 max-w-xl mx-auto">
           {accessError ? (
-            <p className="text-red-700 bg-red-50 border border-red-200 rounded-md inline-block px-4 py-3">
+            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs rounded-xl inline-block">
               {accessError}
-            </p>
+            </div>
           ) : (
-            <p>Loading patient data...</p>
+            <p className="text-xs text-slate-500 font-medium">Loading patient record...</p>
           )}
-          <div className="mt-4">
+          <div>
             <button
               type="button"
               onClick={() => navigate('/doctor/patients')}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="clinical-button-secondary text-xs"
             >
-              Back to Patients
+              ← Back to Patients Directory
             </button>
           </div>
         </div>
       )
     }
+
     return (
-      <div className="px-4 py-6 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto">
+      <div className="space-y-6">
+        {/* Navigation & Header */}
+        <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <button
             type="button"
             onClick={() => navigate('/doctor/patients')}
-            className="mb-4 inline-flex items-center text-blue-600 hover:text-blue-800"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-700 hover:text-teal-900"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Patients
+            <ArrowLeft className="w-4 h-4" /> Back to Patients Directory
           </button>
+          <span className="clinical-badge-normal">
+            <ShieldCheck className="w-3 h-3 mr-1" /> Clinical Access Active
+          </span>
+        </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {patientData.patient.full_name}
-            </h1>
-            <p className="text-gray-600">{patientData.patient.email}</p>
+        {/* Patient Profile Banner */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-teal-950 text-white rounded-2xl p-6 shadow-md border border-slate-800 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-400/30 text-teal-300 font-extrabold flex items-center justify-center text-xl">
+              {patientData.patient.full_name?.charAt(0) || 'P'}
+            </div>
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
+                {patientData.patient.full_name}
+              </h1>
+              <p className="text-xs text-slate-300">{patientData.patient.email}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Physical Metrics Grid */}
+        {patientData.profile && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="clinical-card p-4 space-y-1">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase">Age</p>
+              <p className="text-2xl font-extrabold text-slate-900">{patientData.profile.age || 'N/A'}</p>
+              <p className="text-[11px] text-slate-400">Years old</p>
+            </div>
+            <div className="clinical-card p-4 space-y-1">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase">Biological Gender</p>
+              <p className="text-2xl font-extrabold text-slate-900 capitalize">{patientData.profile.gender || 'N/A'}</p>
+              <p className="text-[11px] text-slate-400">Gender record</p>
+            </div>
+            <div className="clinical-card p-4 space-y-1">
+              <p className="text-[11px] font-semibold text-slate-500 uppercase">Blood Group</p>
+              <p className="text-2xl font-extrabold text-teal-700">{patientData.profile.blood_group || 'N/A'}</p>
+              <p className="text-[11px] text-slate-400">ABO/Rh factor</p>
+            </div>
+          </div>
+        )}
+
+        {/* Abnormal Lab Values Warning Alert */}
+        {patientData.abnormal_values && patientData.abnormal_values.length > 0 && (
+          <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 flex items-center gap-3">
+            <AlertTriangle className="w-5 h-5 text-rose-600 shrink-0" />
+            <div>
+              <p className="font-bold">{patientData.abnormal_values.length} out-of-range lab result(s) identified for this patient</p>
+              <p className="text-[11px] text-rose-700 mt-0.5">Inspect reports and historical lab values below.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Medical Reports */}
+        <div className="clinical-card overflow-hidden">
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-teal-600" />
+              <h3 className="font-bold text-slate-900 text-sm">Medical Reports ({patientData.reports.length})</h3>
+            </div>
           </div>
 
-          {patientData.profile && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <p className="text-sm text-gray-600">Age</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {patientData.profile.age || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <p className="text-sm text-gray-600">Gender</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {patientData.profile.gender || 'N/A'}
-                </p>
-              </div>
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <p className="text-sm text-gray-600">Blood Group</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {patientData.profile.blood_group || 'N/A'}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {patientData.abnormal_values && patientData.abnormal_values.length > 0 && (
-            <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded">
-              <div className="flex items-center">
-                <AlertTriangle className="w-5 h-5 text-red-500 mr-2" />
-                <p className="font-semibold text-red-800">
-                  {patientData.abnormal_values.length} abnormal lab value(s) detected
-                </p>
-              </div>
-            </div>
-          )}
-
-          <div className="bg-white rounded-lg shadow-md mb-6">
-            <div className="px-6 py-4 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-900">Medical Reports</h2>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {patientData.reports.map((report) => (
-                <div key={report.id} className="px-6 py-4 hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-gray-900">{report.file_name}</p>
-                      <p className="text-sm text-gray-500">
-                        {new Date(report.upload_date).toLocaleDateString()}
-                      </p>
-                      {report.ai_summary && (
-                        <p className="text-sm text-gray-600 mt-1">{report.ai_summary}</p>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openReportNote(report.id)}
-                      className="text-sm text-blue-600 hover:text-blue-800"
-                    >
-                      Add Note
-                    </button>
+          <div className="divide-y divide-slate-100">
+            {patientData.reports.length === 0 ? (
+              <div className="p-8 text-center text-xs text-slate-400">No medical reports uploaded by patient yet.</div>
+            ) : (
+              patientData.reports.map((report) => (
+                <div key={report.id} className="p-4 sm:p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                  <div className="space-y-1 min-w-0 pr-4">
+                    <p className="text-sm font-bold text-slate-900 truncate">{report.file_name}</p>
+                    <p className="text-xs text-slate-500">Uploaded {new Date(report.upload_date).toLocaleDateString()}</p>
+                    {report.ai_summary && (
+                      <p className="text-xs text-slate-600 line-clamp-1 italic">&quot;{report.ai_summary}&quot;</p>
+                    )}
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => openReportNote(report.id)}
+                    className="clinical-button-secondary text-xs"
+                  >
+                    + Add Report Note
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Active Regimens */}
+        {patientData.medicines && patientData.medicines.length > 0 && (
+          <div className="clinical-card overflow-hidden">
+            <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Pill className="w-4 h-4 text-indigo-600" />
+                <h3 className="font-bold text-slate-900 text-sm">Patient Prescriptions ({patientData.medicines.length})</h3>
+              </div>
+            </div>
+
+            <div className="divide-y divide-slate-100">
+              {patientData.medicines.map((m) => (
+                <div key={m.id} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-bold text-slate-900">{m.name}</p>
+                    <p className="text-[11px] text-slate-500">{m.dosage} · {m.frequency}</p>
+                  </div>
+                  <span className="clinical-badge-info">{m.status}</span>
                 </div>
               ))}
             </div>
           </div>
+        )}
 
-          {patientData.medicines && patientData.medicines.length > 0 && (
-            <div className="bg-white rounded-lg shadow-md mb-6">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h2 className="text-xl font-semibold text-gray-900">Medications</h2>
-              </div>
-              <div className="divide-y divide-gray-200">
-                {patientData.medicines.map((medicine) => (
-                  <div key={medicine.id} className="px-6 py-4">
-                    <p className="font-medium text-gray-900">{medicine.name}</p>
-                    <p className="text-sm text-gray-600">
-                      {medicine.dosage} • {medicine.frequency} • {medicine.status}
-                    </p>
-                  </div>
-                ))}
-              </div>
+        {/* Doctor Consultation Notes Editor & History */}
+        <div className="clinical-card p-6 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <StickyNote className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-slate-900 text-base">Physician Consultation Notes</h3>
             </div>
-          )}
+            {!showNoteEditor && (
+              <button
+                type="button"
+                onClick={openGeneralNote}
+                className="clinical-button-primary text-xs"
+              >
+                + New Consultation Note
+              </button>
+            )}
+          </div>
 
-          <div className="bg-white rounded-lg shadow-md">
-            <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold text-gray-900">Doctor Notes</h2>
-              {!showNoteEditor && (
+          {showNoteEditor ? (
+            <div className="space-y-4">
+              <p className="text-xs font-semibold text-slate-600">
+                {contextReportId != null
+                  ? `Clinical note linked to Report #${contextReportId}`
+                  : 'General clinical consultation note'}
+              </p>
+              {saveError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-xs text-rose-800 rounded-xl">
+                  {saveError}
+                </div>
+              )}
+              <div className="rounded-xl overflow-hidden border border-slate-300">
+                <ReactQuill
+                  theme="snow"
+                  value={noteText}
+                  onChange={setNoteText}
+                  placeholder="Enter detailed clinical impressions, lab evaluations, or treatment plan notes..."
+                  className="bg-white"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={openGeneralNote}
-                  className="inline-flex items-center text-sm px-3 py-2 rounded-md bg-blue-600 text-white hover:bg-blue-700"
+                  onClick={() => {
+                    setShowNoteEditor(false)
+                    setContextReportId(null)
+                    setNoteText('')
+                    setSaveError('')
+                  }}
+                  className="clinical-button-secondary text-xs"
                 >
-                  <StickyNote className="w-4 h-4 mr-2" />
-                  New consultation note
+                  Cancel
                 </button>
-              )}
+                <button
+                  type="button"
+                  onClick={handleSaveNote}
+                  disabled={saving}
+                  className="clinical-button-primary text-xs"
+                >
+                  <Save className="w-3.5 h-3.5 mr-1" />
+                  {saving ? 'Saving Note...' : 'Save Consultation Note'}
+                </button>
+              </div>
             </div>
-            <div className="p-6">
-              {showNoteEditor ? (
-                <div className="space-y-4">
-                  <p className="text-sm text-gray-600">
-                    {contextReportId != null
-                      ? `Note for report #${contextReportId} (saved as HTML)`
-                      : 'General consultation note (saved as HTML)'}
-                  </p>
-                  {saveError && (
-                    <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-                      {saveError}
-                    </div>
-                  )}
-                  <ReactQuill
-                    theme="snow"
-                    value={noteText}
-                    onChange={setNoteText}
-                    placeholder="Write your notes here..."
-                    className="bg-white"
-                  />
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowNoteEditor(false)
-                        setContextReportId(null)
-                        setNoteText('')
-                        setSaveError('')
-                      }}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleSaveNote}
-                      disabled={saving}
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      {saving ? 'Saving…' : 'Save Note'}
-                    </button>
-                  </div>
+          ) : (
+            <div className="space-y-3">
+              {!patientData.notes || patientData.notes.length === 0 ? (
+                <div className="p-8 text-center text-xs text-slate-400">
+                  No physician notes created for this patient yet. Click above to write a consultation note.
                 </div>
               ) : (
-                <div className="space-y-4">
-                  {!patientData.notes || patientData.notes.length === 0 ? (
-                    <p className="text-gray-500 text-center py-8">
-                      No notes yet. Add a consultation note or link a note to a report.
-                    </p>
-                  ) : (
-                    patientData.notes.map((note) => (
-                      <div key={note.id} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <p className="text-sm text-gray-500">
-                            {new Date(note.created_at).toLocaleString()}
-                          </p>
-                          {note.report_id != null && (
-                            <span className="text-xs text-blue-600">Report #{note.report_id}</span>
-                          )}
-                        </div>
-                        <div
-                          className="text-gray-700 prose prose-sm max-w-none"
-                          dangerouslySetInnerHTML={{ __html: note.note_text }}
-                        />
-                      </div>
-                    ))
-                  )}
-                </div>
+                patientData.notes.map((note) => (
+                  <div key={note.id} className="p-4 bg-slate-50 rounded-xl border border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 border-b border-slate-200/60 pb-1.5">
+                      <span>Recorded {new Date(note.created_at).toLocaleString()}</span>
+                      {note.report_id != null && (
+                        <span className="font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                          Report #{note.report_id}
+                        </span>
+                      )}
+                    </div>
+                    <div
+                      className="text-xs text-slate-800 leading-relaxed font-sans prose prose-sm max-w-none"
+                      dangerouslySetInnerHTML={{ __html: note.note_text }}
+                    />
+                  </div>
+                ))
               )}
             </div>
-          </div>
+          )}
         </div>
+
         <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
       </div>
     )
   }
 
   return (
-    <div className="px-4 py-6 bg-gray-50 min-h-screen">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold text-gray-900 mb-6">Patient Management</h1>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2">
+          <User className="w-6 h-6 text-teal-600" /> Patient Workspace Directory
+        </h1>
+        <p className="text-xs text-slate-500 mt-1">
+          Search and select authorized patients to review medical history, lab parameter deltas, and consultation notes.
+        </p>
+      </div>
 
-        {listError && (
-          <div className="mb-4 rounded-md bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
-            {listError}
-          </div>
-        )}
-
-        <div className="bg-white rounded-lg shadow-md p-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Search patients by name or email..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
+      {listError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800">
+          {listError}
         </div>
+      )}
 
-        <div className="bg-white rounded-lg shadow-md">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">
-              All Patients ({filteredPatients.length})
-            </h2>
-          </div>
-          <div className="divide-y divide-gray-200">
-            {filteredPatients.length === 0 ? (
-              <div className="px-6 py-12 text-center text-gray-500">
-                <User className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-                <p>No patients found</p>
-              </div>
-            ) : (
-              filteredPatients.map((patient) => (
-                <button
-                  type="button"
-                  key={patient.id}
-                  onClick={() => handlePatientSelect(patient.id)}
-                  className="w-full px-6 py-4 text-left hover:bg-blue-50 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                      <User className="w-5 h-5 text-gray-400" />
-                      <div>
-                        <p className="font-medium text-gray-900">
-                          {patient.full_name || patient.email}
-                        </p>
-                        <p className="text-sm text-gray-500">{patient.email}</p>
-                        {patient.age && (
-                          <p className="text-xs text-gray-400 mt-1">
-                            {patient.age} years • {patient.gender} • {patient.blood_group}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <ArrowLeft className="w-5 h-5 text-gray-400 transform rotate-180" />
-                  </div>
-                </button>
-              ))
-            )}
-          </div>
+      {/* Search Input Bar */}
+      <div className="clinical-card p-4">
+        <div className="relative">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search authorized patients by full name or email address..."
+            className="clinical-input pl-10 text-xs"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
       </div>
+
+      {/* All Patients List */}
+      <div className="clinical-card overflow-hidden">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center justify-between">
+          <h3 className="font-bold text-slate-900 text-sm">All Accessible Patients ({filteredPatients.length})</h3>
+        </div>
+
+        <div className="divide-y divide-slate-100">
+          {filteredPatients.length === 0 ? (
+            <div className="p-12 text-center text-xs text-slate-400">
+              No authorized patients match the entered search filter.
+            </div>
+          ) : (
+            filteredPatients.map((patient) => (
+              <button
+                type="button"
+                key={patient.id}
+                onClick={() => handlePatientSelect(patient.id)}
+                className="w-full p-4 sm:p-5 text-left hover:bg-slate-50 transition-colors flex items-center justify-between group"
+              >
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 text-teal-700 font-bold flex items-center justify-center text-sm shrink-0">
+                    {patient.full_name?.charAt(0) || 'P'}
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-sm group-hover:text-teal-700 transition-colors flex items-center gap-1.5">
+                      <span>{patient.full_name || patient.email}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 group-hover:text-teal-600" />
+                    </h4>
+                    <p className="text-xs text-slate-500">{patient.email}</p>
+                    {patient.age && (
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {patient.age} yrs · {patient.gender || '—'} · Blood Group: {patient.blood_group || '—'}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <span className="clinical-button-secondary text-xs">Inspect Patient →</span>
+              </button>
+            ))
+          )}
+        </div>
+      </div>
+
       <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
     </div>
   )
 }
-

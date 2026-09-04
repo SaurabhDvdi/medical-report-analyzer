@@ -1,189 +1,103 @@
+"""
+Normalizer Service for Medical Report Analyzer.
+Performs canonical test name mapping, unit standardization, range formatting, and ISO date parsing.
+"""
+
 import re
-from typing import Dict, Any, List
-from difflib import get_close_matches
+from typing import Dict, Any, List, Optional
+from datetime import datetime
 from logging_config import get_logger
+from services.lab_ontology import LAB_ONTOLOGY, find_ontology_match
 
 logger = get_logger(__name__)
 
 
 class Normalizer:
     def __init__(self):
-        # Canonical test names
-        self.test_name_map = {
-            "hb": "Haemoglobin",
-            "hemoglobin": "Haemoglobin",
-            "haemoglobin": "Haemoglobin",
+        pass
 
-            "hba1c": "HbA1c",
-            "glycated hemoglobin": "HbA1c",
-
-            "platelet": "Platelet Count",
-            "platelet count": "Platelet Count",
-
-            "wbc": "WBC",
-            "white blood cell": "WBC",
-
-            "rbc": "RBC",
-            "red blood cell": "RBC",
-
-            "glucose": "Glucose",
-            "blood sugar": "Glucose",
-
-            "ldl": "LDL Cholesterol",
-            "hdl": "HDL Cholesterol",
-            "cholesterol": "Total Cholesterol",
-
-            "tsh": "TSH",
-            "t3": "T3",
-            "t4": "T4"
-        }
-
-        # Unit normalization
-        self.unit_map = {
-            "mg/dl": "mg/dL",
-            "g/dl": "g/dL",
-            "%": "%",
-            "fl": "fL",
-            "/cumm": "/cumm",
-            "thousand/µl": "10^3/µL"
-        }
-
-    # ----------------------------------
-    # PUBLIC METHOD
-    # ----------------------------------
     def normalize(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Normalize entire report structure
         """
         data["report_info"] = self._normalize_report_info(data.get("report_info", {}))
 
+        # Normalize raw_tests if present directly
+        for test in data.get("raw_tests", []):
+            self._normalize_test(test)
+
+        # Normalize structured test_results if present
         for panel in data.get("test_results", []):
             for test in panel.get("measurements", []):
                 self._normalize_test(test)
 
-                # handle sub-tests if present
-                if test.get("is_subgroup"):
-                    for sub in test.get("sub_tests", []):
-                        self._normalize_test(sub)
-
         return data
 
-    # ----------------------------------
-    # REPORT INFO NORMALIZATION
-    # ----------------------------------
     def _normalize_report_info(self, info: Dict[str, Any]) -> Dict[str, Any]:
-        if "patient_name" in info and info["patient_name"]:
-            info["patient_name"] = info["patient_name"].strip().title()
+        if info.get("patient_name"):
+            info["patient_name"] = str(info["patient_name"]).strip().title()
 
-        if "gender" in info and info["gender"]:
-            info["gender"] = info["gender"].capitalize()
+        if info.get("gender"):
+            g = str(info["gender"]).strip().upper()
+            if g in ("M", "MALE"):
+                info["gender"] = "Male"
+            elif g in ("F", "FEMALE"):
+                info["gender"] = "Female"
 
-        # Normalize report_date if present
-        if "report_date" in info and info["report_date"]:
-            info["report_date"] = self._normalize_date(info["report_date"])
+        if info.get("report_date"):
+            info["report_date"] = self._normalize_date(str(info["report_date"]))
 
         return info
-    
-    # ----------------------------------
-    # DATE NORMALIZATION
-    # ----------------------------------
+
     def _normalize_date(self, date_str: str) -> str:
-        """Normalize date string to ISO format"""
+        """Normalize date string to ISO format (YYYY-MM-DD)"""
         if not date_str:
             return date_str
-        
-        # Try common date formats
+
         date_formats = [
             "%Y-%m-%d",
             "%d-%m-%Y",
             "%d/%m/%Y",
             "%m/%d/%Y",
             "%Y/%m/%d",
+            "%d.%m.%Y"
         ]
-        
+
+        clean_date = date_str.strip()
+
         for fmt in date_formats:
             try:
-                from datetime import datetime
-                parsed = datetime.strptime(date_str.strip(), fmt)
+                parsed = datetime.strptime(clean_date, fmt)
                 return parsed.date().isoformat()
-            except:
+            except ValueError:
                 continue
-        
-        return date_str  # Return original if no format matches
 
-    # ----------------------------------
-    # TEST NORMALIZATION
-    # ----------------------------------
+        return clean_date
+
     def _normalize_test(self, test: Dict[str, Any]):
-        # Normalize test name
-        test["test_description"] = self._normalize_test_name(
-            test.get("test_description")
-        )
+        desc = test.get("test_description")
+        if desc:
+            match = find_ontology_match(desc)
+            if match:
+                test["test_description"] = match["canonical_name"]
+            else:
+                test["test_description"] = str(desc).strip()
 
-        # Normalize unit
-        test["unit"] = self._normalize_unit(test.get("unit"))
+        # Ensure unit is clean string
+        if test.get("unit"):
+            test["unit"] = str(test["unit"]).strip()
 
-        # Normalize reference range
-        test["ref_range"] = self._normalize_range(test.get("ref_range"))
+        # Ensure reference range is clean string
+        if test.get("ref_range"):
+            test["ref_range"] = str(test["ref_range"]).strip()
 
-        # Ensure numeric value
+        # Ensure float result
         test["result"] = self._safe_float(test.get("result"))
 
-    # ----------------------------------
-    # NAME NORMALIZATION
-    # ----------------------------------
-    def _normalize_test_name(self, name: str) -> str:
-        if not name:
-            return name
-
-        key = name.lower().strip()
-
-        # Direct match
-        if key in self.test_name_map:
-            return self.test_name_map[key]
-
-        # Fuzzy match
-        matches = get_close_matches(key, self.test_name_map.keys(), n=1, cutoff=0.75)
-        if matches:
-            return self.test_name_map[matches[0]]
-
-        return name.strip().title()  # fallback
-
-    # ----------------------------------
-    # UNIT NORMALIZATION
-    # ----------------------------------
-    def _normalize_unit(self, unit: str) -> str:
-        if not unit:
-            return unit
-
-        key = unit.lower().strip()
-
-        if key in self.unit_map:
-            return self.unit_map[key]
-
-        return unit
-
-    # ----------------------------------
-    # RANGE NORMALIZATION
-    # ----------------------------------
-    def _normalize_range(self, ref_range: str) -> str:
-        if not ref_range:
-            return ref_range
-
-        ref_range = ref_range.replace(" ", "")
-
-        # normalize formats like "13 - 17"
-        match = re.match(r"(\d+\.?\d*)-(\d+\.?\d*)", ref_range)
-        if match:
-            return f"{match.group(1)}-{match.group(2)}"
-
-        return ref_range
-
-    # ----------------------------------
-    # SAFE FLOAT
-    # ----------------------------------
-    def _safe_float(self, value):
+    def _safe_float(self, value: Any) -> Optional[float]:
+        if value is None:
+            return None
         try:
             return float(value)
-        except:
+        except (ValueError, TypeError):
             return None

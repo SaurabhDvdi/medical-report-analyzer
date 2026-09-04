@@ -1,22 +1,10 @@
 import React from 'react'
 import { ChevronRight, TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import RiskBadge from './RiskBadge'
-import Skeleton from 'react-loading-skeleton'
-import 'react-loading-skeleton/dist/skeleton.css'
 
 /**
  * ParameterCard Component
  * Displays a card with parameter information including latest value, trend, and risk
- * 
- * Props:
- *   - parameter: string (parameter name, e.g., "HbA1c")
- *   - latestValue: number
- *   - unit: string
- *   - trend: string ('Increasing', 'Decreasing', 'Stable')
- *   - riskLevel: string ('LOW', 'MEDIUM', 'HIGH')
- *   - confidence: number (0-100)
- *   - isLoading: boolean
- *   - onClick: function
  */
 export default function ParameterCard({
   parameter,
@@ -31,51 +19,53 @@ export default function ParameterCard({
   const getTrendIcon = () => {
     switch (trend) {
       case 'Increasing':
-        return <TrendingUp className="w-5 h-5 text-red-500" />
+        return <TrendingUp className="w-4 h-4 text-rose-600" />
       case 'Decreasing':
-        return <TrendingDown className="w-5 h-5 text-green-500" />
+        return <TrendingDown className="w-4 h-4 text-emerald-600" />
       case 'Stable':
       default:
-        return <Minus className="w-5 h-5 text-blue-500" />
+        return <Minus className="w-4 h-4 text-teal-600" />
     }
   }
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-md transition-shadow">
-        <Skeleton height={24} width="50%" className="mb-4" />
-        <Skeleton height={32} width="60%" className="mb-4" />
-        <Skeleton height={20} width="40%" />
+      <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-xs animate-pulse space-y-3">
+        <div className="w-24 h-4 bg-slate-200 rounded" />
+        <div className="w-32 h-7 bg-slate-200 rounded" />
+        <div className="w-20 h-4 bg-slate-100 rounded" />
       </div>
     )
   }
 
+  const hasValidValue = latestValue !== null && latestValue !== undefined && !isNaN(latestValue)
+
   return (
     <button
       onClick={onClick}
-      className="w-full text-left bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg transition-shadow hover:border-gray-300 cursor-pointer"
+      className="w-full text-left clinical-card p-5 hover:border-teal-300 cursor-pointer space-y-3 flex flex-col justify-between"
     >
       {/* Header */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <p className="text-sm font-medium text-gray-600">{parameter}</p>
-        </div>
-        <ChevronRight className="w-5 h-5 text-gray-400" />
+      <div className="flex justify-between items-start">
+        <p className="text-xs font-bold text-slate-900 truncate pr-2">{parameter}</p>
+        <ChevronRight className="w-4 h-4 text-slate-400 shrink-0" />
       </div>
 
       {/* Latest Value */}
-      <div className="mb-4">
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-bold text-gray-900">{latestValue?.toFixed(2) || 'N/A'}</span>
-          {unit && <span className="text-sm text-gray-600">{unit}</span>}
+      <div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-2xl font-extrabold text-slate-900">
+            {hasValidValue ? Number(latestValue).toFixed(2) : 'Unavailable'}
+          </span>
+          {hasValidValue && unit && <span className="text-xs font-medium text-slate-500">{unit}</span>}
         </div>
       </div>
 
       {/* Trend and Risk */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-2">
+      <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+        <div className="flex items-center gap-1.5">
           {getTrendIcon()}
-          <span className="text-sm font-medium text-gray-700">{trend || 'Unknown'}</span>
+          <span className="text-xs font-semibold text-slate-700">{trend || 'Stable'}</span>
         </div>
         <RiskBadge riskLevel={riskLevel} confidence={confidence} size="sm" />
       </div>

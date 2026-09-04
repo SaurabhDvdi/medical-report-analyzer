@@ -1,48 +1,16 @@
-from datetime import datetime, timedelta,UTC
 from typing import Optional
-from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
-import os
-from database import SessionLocal
+from database import get_db
 from models import User
+from core.security import create_access_token, verify_token, SECRET_KEY, ALGORITHM
 from logging_config import get_logger
-
-load_dotenv()
 
 logger = get_logger(__name__)
 
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-
 security = HTTPBearer()
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.now(UTC) + expires_delta
-    else:
-        expire = datetime.now(UTC) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-
-def verify_token(token: str):
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except JWTError:
-        return None
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
@@ -73,5 +41,6 @@ def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return {"id": user.id, "email": user.email, "role": user.role}
+    return {"id": user.id, "email": user.email, "full_name": user.full_name, "role": user.role}
+
 

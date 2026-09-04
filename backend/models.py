@@ -64,7 +64,7 @@ class User(Base):
     email = Column(String(255), unique=True, index=True)
     password_hash = Column(String(255))
     full_name = Column(String(255))
-    role = Column(String(50))  # "patient" or "doctor"
+    role = Column(String(50), index=True)  # "patient" or "doctor"
     created_at = Column(DateTime, default=datetime.utcnow)
     doctor_category_id = Column(Integer, ForeignKey("doctor_categories.id"), nullable=True, index=True)
     doctor_specialty_id = Column(Integer, ForeignKey("doctor_specialties.id"), nullable=True, index=True)
@@ -98,7 +98,7 @@ class Report(Base):
     __tablename__ = "reports"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     file_name = Column(String(500))
     file_path = Column(String(1000))
     file_type = Column(String(50))
@@ -107,18 +107,23 @@ class Report(Base):
     ocr_status = Column(String(50), default="pending")  # pending, processing, completed, failed
     extracted_text = Column(Text)
     ai_summary = Column(Text)
-    category_id = Column(Integer, ForeignKey("report_categories.id"), nullable=True)
+    category_id = Column(Integer, ForeignKey("report_categories.id"), nullable=True, index=True)
     
     user = relationship("User", back_populates="reports")
     category = relationship("ReportCategory", back_populates="reports")
     lab_values = relationship("LabValue", back_populates="report", cascade="all, delete-orphan")
     doctor_notes = relationship("DoctorNote", back_populates="report")
 
+    __table_args__ = (
+        Index("ix_reports_user_date", "user_id", "report_date"),
+        Index("ix_reports_user_upload", "user_id", "upload_date"),
+    )
+
 class LabValue(Base):
     __tablename__ = "lab_values"
     
     id = Column(Integer, primary_key=True, index=True)
-    report_id = Column(Integer, ForeignKey("reports.id"))
+    report_id = Column(Integer, ForeignKey("reports.id"), index=True)
     parameter_name = Column(String(255), index=True)
     value = Column(Float)
     unit = Column(String(100))
@@ -127,11 +132,16 @@ class LabValue(Base):
     
     report = relationship("Report", back_populates="lab_values")
 
+    __table_args__ = (
+        Index("ix_lab_values_report_param", "report_id", "parameter_name"),
+        Index("ix_lab_values_param_abnormal", "parameter_name", "is_abnormal"),
+    )
+
 class Medicine(Base):
     __tablename__ = "medicines"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"))
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
     name = Column(String(255))
     dosage = Column(String(255))
     frequency = Column(String(255))
@@ -142,13 +152,17 @@ class Medicine(Base):
     
     user = relationship("User", back_populates="medicines")
 
+    __table_args__ = (
+        Index("ix_medicines_user_status", "user_id", "status"),
+    )
+
 class DoctorNote(Base):
     __tablename__ = "doctor_notes"
     
     id = Column(Integer, primary_key=True, index=True)
-    doctor_id = Column(Integer, ForeignKey("users.id"))
-    patient_id = Column(Integer, ForeignKey("users.id"))
-    report_id = Column(Integer, ForeignKey("reports.id"), nullable=True)
+    doctor_id = Column(Integer, ForeignKey("users.id"), index=True)
+    patient_id = Column(Integer, ForeignKey("users.id"), index=True)
+    report_id = Column(Integer, ForeignKey("reports.id"), nullable=True, index=True)
     note_text = Column(Text)
     note_type = Column(String(50), default="consultation")  # consultation, examination, followup
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -157,11 +171,15 @@ class DoctorNote(Base):
     patient = relationship("User", foreign_keys=[patient_id], back_populates="patient_notes")
     report = relationship("Report", back_populates="doctor_notes")
 
+    __table_args__ = (
+        Index("ix_doctor_notes_doctor_patient", "doctor_id", "patient_id"),
+    )
+
 class DoctorProfile(Base):
     __tablename__ = "doctor_profiles"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
     degrees = Column(Text)  # JSON string or comma-separated
     specialization = Column(String(255))
     experience_years = Column(Integer)
@@ -180,7 +198,7 @@ class PatientProfile(Base):
     __tablename__ = "patient_profiles"
     
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), unique=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
     age = Column(Integer, nullable=True)
     gender = Column(String(50), nullable=True)  # male, female, other
     height_cm = Column(Float, nullable=True)

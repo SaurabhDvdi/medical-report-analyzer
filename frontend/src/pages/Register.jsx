@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import api from '../utils/api'
+import { Activity, ShieldCheck, ArrowRight, User, Stethoscope } from 'lucide-react'
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -103,104 +104,121 @@ export default function Register() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to existing account
-            </Link>
-          </p>
+    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="sm:mx-auto sm:w-full sm:max-w-md space-y-3 text-center relative z-10">
+        <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 font-bold text-base">
+          <Activity className="w-6 h-6 animate-pulse" />
+          <span>MedPulse AI Platform</span>
         </div>
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+        <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-100 tracking-tight">
+          Create Clinical Account
+        </h2>
+        <p className="text-xs text-slate-400">
+          Register as a Patient or Licensed Healthcare Provider
+        </p>
+      </div>
+
+      <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4">
+        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-5">
           {error && (
-            <div className="bg-red-50 border border-red-400 text-red-700 px-4 py-3 rounded">
+            <div className="p-3.5 bg-rose-950/80 border border-rose-800 text-rose-300 text-xs rounded-xl">
               {error}
             </div>
           )}
-          <div className="space-y-4">
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
             <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
-                Full Name
-              </label>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Full Name</label>
               <input
-                id="fullName"
-                name="fullName"
                 type="text"
                 required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 value={formData.fullName}
                 onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                placeholder="Dr. Jane Doe or John Smith"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
-            </div>
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email address
-              </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="mt-1 appearance-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
-              <select
-                id="role"
-                name="role"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                value={formData.role}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    role: e.target.value,
-                    doctor_category_id: '',
-                    doctor_specialty_id: '',
-                    useNewSpecialty: false,
-                    new_specialty_name: '',
-                    new_specialty_description: '',
-                  })
-                }
-              >
-                <option value="patient">Patient</option>
-                <option value="doctor">Doctor</option>
-              </select>
             </div>
 
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                placeholder="name@domain.com"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+              <input
+                type="password"
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                placeholder="Create strong password"
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
+
+            {/* Role Toggle Selector */}
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">Select Account Role</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFormData({
+                      ...formData,
+                      role: 'patient',
+                      doctor_category_id: '',
+                      doctor_specialty_id: '',
+                      useNewSpecialty: false,
+                      new_specialty_name: '',
+                      new_specialty_description: '',
+                    })
+                  }
+                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    formData.role === 'patient'
+                      ? 'bg-teal-600 text-white border-teal-500 shadow-sm'
+                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <User className="w-4 h-4" />
+                  <span>Patient</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFormData({ ...formData, role: 'doctor' })}
+                  className={`p-3 rounded-xl border text-xs font-semibold flex items-center justify-center gap-2 transition-all ${
+                    formData.role === 'doctor'
+                      ? 'bg-indigo-600 text-white border-indigo-500 shadow-sm'
+                      : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800/50'
+                  }`}
+                >
+                  <Stethoscope className="w-4 h-4" />
+                  <span>Doctor</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Doctor Specialty Extra Inputs */}
             {formData.role === 'doctor' && (
-              <div className="border border-gray-200 rounded-md p-4 space-y-3 bg-white">
-                <p className="text-sm font-medium text-gray-800">Clinical profile</p>
+              <div className="p-4 bg-slate-950 rounded-xl border border-indigo-900/60 space-y-3">
+                <p className="text-xs font-bold text-indigo-300 flex items-center gap-1.5">
+                  <Stethoscope className="w-3.5 h-3.5" /> Physician Category Credentials
+                </p>
+
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Category</label>
+                  <label className="block text-[11px] font-semibold text-slate-400 mb-1">Category</label>
                   <select
                     required
-                    className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md sm:text-sm"
+                    className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200"
                     value={formData.doctor_category_id}
                     onChange={(e) =>
                       setFormData({
@@ -210,7 +228,7 @@ export default function Register() {
                       })
                     }
                   >
-                    <option value="">Select category…</option>
+                    <option value="">Select Category...</option>
                     {categories.map((c) => (
                       <option key={c.id} value={c.id}>
                         {c.name}
@@ -218,7 +236,8 @@ export default function Register() {
                     ))}
                   </select>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
+
+                <label className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formData.useNewSpecialty}
@@ -232,14 +251,15 @@ export default function Register() {
                       })
                     }
                   />
-                  My specialty is not listed — add a new one
+                  <span>Add new custom specialty</span>
                 </label>
+
                 {!formData.useNewSpecialty ? (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Specialty</label>
+                    <label className="block text-[11px] font-semibold text-slate-400 mb-1">Specialty</label>
                     <select
                       required={!!formData.doctor_category_id}
-                      className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md sm:text-sm disabled:bg-gray-100"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 disabled:opacity-50"
                       value={formData.doctor_specialty_id}
                       onChange={(e) =>
                         setFormData({ ...formData, doctor_specialty_id: e.target.value })
@@ -247,9 +267,7 @@ export default function Register() {
                       disabled={!formData.doctor_category_id}
                     >
                       <option value="">
-                        {formData.doctor_category_id
-                          ? 'Select specialty…'
-                          : 'Choose a category first'}
+                        {formData.doctor_category_id ? 'Select Specialty...' : 'Choose Category First'}
                       </option>
                       {specialties.map((s) => (
                         <option key={s.id} value={s.id}>
@@ -259,28 +277,24 @@ export default function Register() {
                     </select>
                   </div>
                 ) : (
-                  <>
+                  <div className="space-y-2">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        New specialty name
-                      </label>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Specialty Name</label>
                       <input
                         type="text"
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md sm:text-sm"
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200"
+                        placeholder="e.g. Pediatric Cardiology"
                         value={formData.new_specialty_name}
                         onChange={(e) =>
                           setFormData({ ...formData, new_specialty_name: e.target.value })
                         }
-                        placeholder="e.g. Interventional cardiology"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700">
-                        Description (optional)
-                      </label>
+                      <label className="block text-[11px] font-semibold text-slate-400 mb-1">Description (Optional)</label>
                       <textarea
-                        className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md sm:text-sm"
                         rows={2}
+                        className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200"
                         value={formData.new_specialty_description}
                         onChange={(e) =>
                           setFormData({
@@ -290,22 +304,40 @@ export default function Register() {
                         }
                       />
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
-          </div>
 
-          <div>
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              className="w-full py-3 px-4 bg-teal-600 hover:bg-teal-700 text-white font-semibold text-xs rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? (
+                <span>Registering Account...</span>
+              ) : (
+                <>
+                  <span>Complete Account Registration</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
+          </form>
+
+          <div className="pt-3 border-t border-slate-800 text-center space-y-2">
+            <p className="text-xs text-slate-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-semibold text-teal-400 hover:text-teal-300">
+                Sign in
+              </Link>
+            </p>
+            <div className="flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+              <ShieldCheck className="w-3.5 h-3.5 text-teal-500" />
+              <span>Grounded Decision Support Platform</span>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   )

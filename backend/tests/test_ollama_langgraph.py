@@ -11,8 +11,13 @@ from mcp.tools import SecurityContext
 class TestOllamaLangGraphIntegration(unittest.TestCase):
 
     def setUp(self):
+        self.provider_patch = patch.object(AIConfig, "LLM_PROVIDER", "ollama")
+        self.provider_patch.start()
         self.llm_service = LLMService()
         self.mcp_client = MCPClient()
+
+    def tearDown(self):
+        self.provider_patch.stop()
 
     def test_1_configuration_loads(self):
         """TEST 1: Configuration loads LLM_PROVIDER=ollama."""

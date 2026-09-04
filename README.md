@@ -1,6 +1,6 @@
 # 🏥 Medical Report Analyzer & AI Clinical Intelligence Platform
 
-> An enterprise-grade, full-stack medical intelligence platform combining automated OCR document ingestion, longitudinal lab analytics, role-based doctor-patient collaboration, and a **LangGraph-orchestrated AI Clinical Assistant** powered by **Model Context Protocol (MCP)** tools and hybrid LLM support (Ollama & Groq).
+> An enterprise-grade, full-stack medical intelligence platform combining automated OCR document ingestion, longitudinal lab analytics, consent-driven doctor-patient collaboration, and a **LangGraph-orchestrated AI Clinical Assistant** powered by **Model Context Protocol (MCP)** tools and hybrid LLM support (Ollama & Groq).
 
 ---
 
@@ -10,15 +10,17 @@
 2. [Key Capabilities & Features](#-key-capabilities--features)
 3. [System Architecture](#-system-architecture)
 4. [Tech Stack](#-tech-stack)
-5. [Project Structure](#-project-structure)
+5. [Complete Project Structure](#-complete-project-structure)
 6. [Data Architecture & Database Models](#-data-architecture--database-models)
 7. [AI Agent & MCP Architecture](#-ai-agent--mcp-architecture)
-8. [Security & Access Control Matrix](#-security--access-control-matrix)
-9. [API Reference](#-api-reference)
-10. [Setup & Installation Guide](#-setup--installation-guide)
-11. [Environment Configuration (`.env`)](#-environment-configuration-env)
-12. [Testing & Quality Assurance](#-testing--quality-assurance)
-13. [Limitations & Future Roadmap](#-limitations--future-roadmap)
+8. [Complete Model Context Protocol (MCP) Tool Suite](#-complete-model-context-protocol-mcp-tool-suite)
+9. [Security & Access Control Matrix](#-security--access-control-matrix)
+10. [Exhaustive API Reference](#-exhaustive-api-reference)
+11. [Frontend Component & Page Inventory](#-frontend-component--page-inventory)
+12. [Setup & Installation Guide](#-setup--installation-guide)
+13. [Environment Configuration (`.env`)](#-environment-configuration-env)
+14. [Testing & Quality Assurance](#-testing--quality-assurance)
+15. [Limitations & Future Roadmap](#-limitations--future-roadmap)
 
 ---
 
@@ -28,39 +30,46 @@ Modern medical care is often fragmented. Patients receive diagnostic laboratory 
 
 The **Medical Report Analyzer** bridges this gap by transforming static, unstructured medical documents into structured, actionable intelligence:
 
-- **For Patients:** Upload medical reports (PDF/images), track lab parameters over time with interactive time-series charts, manage current/past medication regimens, assess overall health risks, find specialized doctors, and interact with an AI Assistant grounded in their own personal medical data.
-- **For Healthcare Providers (Doctors):** Request and manage patient access, view structured medical timelines, compare historical reports side-by-side with calculated percentage deltas, review AI summaries, add clinical consultation notes, and utilize an AI Assistant scoped to approved patient records.
+- **For Patients:** Upload medical reports (PDF/images), track lab parameters over time with interactive time-series charts, analyze longitudinal health trends, manage current/past medication regimens, calculate health risks, find specialized doctors, grant/revoke doctor data access, and interact with an AI Assistant grounded in their own personal medical data.
+- **For Healthcare Providers (Doctors):** Request and manage patient access, inspect approved patient histories, compare historical reports side-by-side with calculated percentage deltas, review AI summaries, add clinical consultation/examination notes, and utilize an AI Assistant strictly scoped to authorized patient records.
 
 ---
 
 ## 🔥 Key Capabilities & Features
 
 ### 🧠 1. LangGraph AI Clinical Assistant
-- **Intent Recognition & State Orchestration:** Utilizes a custom LangGraph `StateGraph` to evaluate user intent (patient history retrieval, health summary, lab trend analysis, report comparison, health risk scoring, drug interaction check, doctor discovery, or medical guidelines).
-- **Hybrid Multi-LLM Backend:** Supports offline local execution via **Ollama** (e.g., `qwen2.5:3b`, `llama3`) and cloud execution via **Groq Cloud API** (`llama-3.1-8b-instant`).
-- **Grounding & Transparency:** All AI responses include inline source citations (`[Patient Profile]`, `[Lab Parameter: HbA1c]`, `[Medical Glossary]`), list of tools executed, and context-aware follow-up question suggestions.
+- **Intent Recognition & State Orchestration:** Custom LangGraph `StateGraph` workflow classifying user queries into discrete intent routes (`CLINICAL`, `MY_DOCTORS`, `DOCTOR_DIRECTORY`, `MY_PATIENTS`, `APPLICATION_HELP`).
+- **Hybrid Multi-LLM Backend:** Multi-provider architecture supporting offline local inference via **Ollama** (e.g., `qwen2.5:3b`, `llama2`, `llama3`) and cloud inference via **Groq Cloud API** (`llama-3.1-8b-instant`, `mixtral-8x7b-32768`).
+- **Grounding & Source Transparency:** All AI responses include inline source citations (`[Patient Profile]`, `[Lab Parameter: HbA1c]`, `[Medical Glossary]`, `[Doctor Directory]`), tools executed log, and active security boundary checks.
+- **Automated Follow-Up Suggestions:** Integrated `SuggestionService` generating 3 contextually relevant follow-up questions after every chat response.
 
-### 🔌 2. Model Context Protocol (MCP) Tool Suite
-- **18+ Security-Scoped Tools:** Standardized MCP tool registry enforcing strict role boundaries (`SecurityContext`):
-  - `get_patient_history`, `get_health_summary`, `get_lab_trend`, `compare_reports`, `calculate_health_risk`
-  - `search_medical_guidelines`, `check_drug_interactions`
-  - `search_doctors`, `get_doctor_profile`, `get_doctor_specialties`
-  - `get_my_patients`, `search_my_patients`, `resolve_my_patient`, `get_my_patient_count`
-  - `get_my_doctors`, `get_my_reports`, `get_my_medicines`, `get_website_help`
+### 🔌 2. Security-Scoped Model Context Protocol (MCP) Tool Suite
+- **18 Standardized MCP Tools:** Standardized tool registry carrying an immutable `SecurityContext` enforcing requesting user ID, role (`patient`/`doctor`), target patient ID, and database transaction scope.
+- **Role Boundary Controls:** Doctors can only execute tools against patients who have explicitly granted approved data access. Patients can only query their own records.
 
-### 📄 3. Document Processing Pipeline (OCR & AI Ingestion)
-- **Multi-Engine OCR:** Automatic text extraction from PDF and image files using PyTesseract and EasyOCR with Poppler fallback.
-- **Structured Lab Extraction:** Automated normalization of lab parameters, units, reference ranges, and abnormal value flag assignment (`is_abnormal`).
-- **AI Clinical Summarization:** Integrated `LLMService` (Ollama/Groq) generating concise clinical summaries of extracted document text during ingestion.
+### 📄 3. Robust Multi-Engine Document OCR & Parsing Pipeline
+- **Multi-Engine OCR Strategy:** Automatic text extraction from PDF and image files (PNG, JPG, JPEG) using PyTesseract, EasyOCR, and PyMuPDF (`fitz`) fallback, with optional Poppler (`pdf2image`) support.
+- **Regex & Pattern Extraction Engine:** Automatic parsing of lab parameter names, quantitative values, measurement units, and reference ranges.
+- **Automatic Range Normalization & Flagging:** Standardizes units and flags abnormal values (`is_abnormal`) against clinical bounds.
+- **AI Clinical Summarization:** Integrated `LLMService` generating concise clinical summaries of extracted document text during ingestion.
 
 ### 📈 4. Advanced Health Analytics & Report Comparison
-- **Linear Regression Trends:** Time-series tracking of lab parameter trajectory over multiple report dates.
-- **Pearson Correlation Heatmaps:** Multi-parameter correlation matrices highlighting relationships between blood values.
+- **Linear Regression Trends:** Time-series tracking of lab parameter trajectory over multiple report dates with calculated trend slopes (improving, stable, worsening).
+- **Longitudinal Health Trends & Trajectories:** Multi-parameter trajectory tracking highlighting biomarker shifts, rates of change, and baseline deviations over time.
 - **Side-by-Side Longitudinal Comparison:** Deterministic report comparison calculating absolute values, parameter deltas, percentage changes, and status shifts (e.g., `Normal` ➔ `Elevated`).
+- **Health Risk & Insights Engine:** Evaluates overall patient risk scores and generates structured clinical observations based on flagged anomalies.
 
 ### 👨‍⚕️ 5. Consent-Driven Doctor-Patient Access System
-- **Taxonomy & Discovery:** Doctor categorization by clinical specialty (`DoctorCategory`, `DoctorSpecialty`) with custom specialty creation on registration.
-- **Patient Sovereignty:** Access must be explicitly requested by patients or requested by doctors and approved by patients. Access can be granted or revoked at any time.
+- **Clinical Taxonomy:** Structured categorization of doctors by clinical specialty (`DoctorCategory`, `DoctorSpecialty`) with custom specialty creation on registration.
+- **Patient Sovereignty Lifecycle:** Explicit access request, approval, rejection, and revocation workflow (`pending`, `approved`/`accepted`, `rejected`, `revoked`).
+- **Doctor Patient Inspection View:** Dedicated interface for doctors to review approved patient profiles, lab timelines, report deltas, and record clinical notes.
+
+### 💊 6. Medication Regimen & Interaction Tracking
+- **Medication Management:** Track active/current and past prescribed medications with dosage, frequency, and date ranges.
+- **Drug Interaction Engine:** Evaluates known drug-drug contraindications and warnings via MCP tool execution.
+
+### 📝 7. Doctor Clinical Consultation Notes
+- **Linked Doctor Notes:** Doctors can record structured notes (`consultation`, `examination`, `followup`) attached to patient profiles and specific medical reports.
 
 ---
 
@@ -69,7 +78,7 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
 ```text
                                   +---------------------------------------+
                                   |         React 18 Frontend             |
-                                  |  (Vite + TailwindCSS + Recharts)       |
+                                  | (Vite + TailwindCSS + Recharts + Query)|
                                   +-------------------+-------------------+
                                                       |
                                              HTTP / REST API Calls
@@ -85,7 +94,7 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
                                         v                           v
                            +------------------------+  +------------------------+
                            |  REST Services & ORM   |  |   AI Clinical Agent    |
-                           |  (OCR, Analytics, DB)  |  |   (LangGraph Engine)   |
+                           | (OCR, Analytics, DB)   |  |   (LangGraph Engine)   |
                            +-----------+------------+  +-----------+------------+
                                        |                           |
                                        |                           v
@@ -99,7 +108,7 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
                                        v             v                           v
                            +------------------------+  +------------------------+  +------------------------+
                            |  Database Layer        |  | Grounded RAG &         |  | LLM Provider           |
-                           |  (MySQL / SQLite)      |  | Analytics Services     |  | (Ollama / Groq Cloud)  |
+                           |  (SQLite / PyMySQL)    |  | Analytics Services     |  | (Ollama / Groq Cloud)  |
                            +------------------------+  +------------------------+  +------------------------+
 ```
 
@@ -109,184 +118,285 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
 
 | Domain | Technology / Library | Purpose |
 | :--- | :--- | :--- |
-| **Backend API** | Python 3.10+, FastAPI, Uvicorn | High-performance asynchronous REST backend |
-| **Database & ORM** | SQLAlchemy, SQLite / PyMySQL | Relational database mapping and persistence |
-| **Authentication** | JWT (`python-jose`), `bcrypt` | Role-based authorization & password security |
-| **AI Orchestration** | LangGraph, LangChain Core / Community | State graph workflow & agent orchestration |
-| **Tool Architecture** | Model Context Protocol (MCP) | Standardized, security-scoped tool execution |
-| **LLM Inference** | Ollama (`langchain-ollama`), Groq (`langchain-openai`) | Local offline or cloud LLM reasoning |
-| **OCR & Parsing** | PyTesseract, EasyOCR, `pdf2image`, Pillow | Text extraction from medical PDFs and images |
-| **NLP & ML** | Hugging Face Transformers, Pandas, SciPy | Document summarization & time-series regression |
-| **Frontend** | React 18, Vite, TailwindCSS, Lucide Icons | Responsive UI with rich interactive components |
-| **Data Viz** | Recharts, Chart.js, Seaborn, Matplotlib | Time-series charts & correlation heatmaps |
+| **Backend Framework** | Python 3.10+, FastAPI, Uvicorn | High-performance asynchronous REST API backend |
+| **Database & ORM** | SQLAlchemy, SQLite / PyMySQL | Relational database mapping, migrations & persistence |
+| **Authentication & Security**| JWT (`python-jose`), `passlib` (`bcrypt`) | Token-based role authentication & password hashing |
+| **AI Orchestration** | LangGraph, LangChain Core / Community | StateGraph agent workflow & intent routing |
+| **Tool Architecture** | Model Context Protocol (MCP) | Standardized, role-scoped tool execution layer |
+| **LLM Providers** | Ollama (`langchain-ollama`), Groq / OpenAI (`langchain-groq`, `openai`) | Hybrid local offline or cloud LLM inference |
+| **Document Ingestion & OCR**| PyTesseract, EasyOCR, PyMuPDF (`fitz`), `pdf2image`, Pillow | Text extraction from PDF & image medical reports |
+| **Analytics & Data Science**| Pandas, NumPy, SciPy, Scikit-Learn | Linear regression trends & Pearson correlation matrices |
+| **Chart Generation** | Matplotlib, Seaborn | Server-side correlation heatmap rendering |
+| **Frontend Framework** | React 18, Vite, React Router v6 | Fast single-page web application frontend |
+| **State & Data Fetching** | TanStack React Query v5 | Client-side query caching, refetching & mutation state |
+| **Styling & UI Components** | Tailwind CSS, Framer Motion, Radix UI | Dark/light theme styling, animations & dialog modals |
+| **Data Visualizations** | Recharts | Interactive time-series trends & correlation heatmaps |
+| **Icons & Micro-UI** | Lucide React, Heroicons, React Hot Toast | Icon sets & toast notifications |
+| **Testing** | Pytest, HTTPX | Automated backend & AI test execution |
 
 ---
 
-## 📁 Project Structure
+## 📁 Complete Project Structure
 
 ```text
 medical-report-analyzer/
-├── README.md                      # Primary project documentation
-├── QUICKSTART.md                  # Concise quickstart guide
-├── package.json                   # Root package definition
+├── README.md                      # Primary comprehensive project documentation
+├── QUICKSTART.md                  # Concise setup & quickstart guide
+├── IMPLEMENTATION_NOTES.md        # Technical implementation & fallback notes
+├── docs.txt                       # Consolidated documentation reference
 │
 ├── backend/                       # Python FastAPI Backend Architecture
-│   ├── main.py                    # Application entrypoint & REST API endpoints
-│   ├── database.py                # Database connection & session lifecycle
-│   ├── models.py                  # SQLAlchemy ORM database models
-│   ├── schemas.py                 # Pydantic request/response schemas
-│   ├── auth.py                    # JWT token creation & authentication dependency
-│   ├── logging_config.py          # Centralized rotating logger setup
-│   ├── .env                       # Environment configuration (LLM, DB, Poppler)
+│   ├── main.py                    # Application entrypoint & primary REST API endpoints
+│   ├── database.py                # Database connection lifecycle & session setup
+│   ├── models.py                  # SQLAlchemy ORM database tables & relationships
+│   ├── schemas.py                 # Pydantic request/response validation models
+│   ├── auth.py                    # JWT authentication dependency & password hashing
+│   ├── logging_config.py          # Centralized rotating file & console logger
+│   ├── .env                       # Environment configuration file
+│   ├── .env.example               # Example environment variable template
 │   ├── requirements.txt           # Python dependencies manifest
+│   ├── medical_reports.db         # SQLite database file (autogenerated on startup)
 │   │
 │   ├── ai/                        # AI Assistant & LangGraph Subsystem
-│   │   ├── agent.py               # LangGraph ClinicalAssistantAgent & graph construction
-│   │   ├── llm_service.py         # LLM provider wrapper (Ollama & Groq integration)
-│   │   ├── rag_service.py         # Patient context retrieval & medical glossary RAG
+│   │   ├── agent.py               # LangGraph ClinicalAssistantAgent & StateGraph workflow
+│   │   ├── llm_service.py         # Provider abstraction for Ollama & Groq LLMs
+│   │   ├── rag_service.py         # Grounded patient context & medical glossary retrieval
 │   │   ├── suggestion_service.py  # Follow-up question suggestion generator
-│   │   └── config.py              # AI configuration parameters
+│   │   └── config.py              # AI configuration parameters & default models
 │   │
-│   ├── mcp/                       # Model Context Protocol Layer
-│   │   ├── tools.py               # MCPToolRegistry & SecurityContext implementation
-│   │   └── client.py              # MCPClient wrapper mapping tool invocations
+│   ├── mcp/                       # Model Context Protocol (MCP) Layer
+│   │   ├── tools.py               # MCPToolRegistry & SecurityContext (18 security tools)
+│   │   └── client.py              # MCPClient wrapper for safe tool execution
 │   │
-│   ├── routes/                    # API Router Modules
-│   │   ├── ai_routes.py           # /api/ai/chat and /api/ai/compare-reports endpoints
-│   │   └── dashboard.py           # Dashboard data endpoints
+│   ├── routes/                    # Modular API Routers
+│   │   ├── ai_routes.py           # /api/ai/chat and /api/ai/compare-reports
+│   │   └── dashboard.py           # /api/dashboard data endpoints
 │   │
-│   ├── services/                  # Business Logic & Analytics Services
-│   │   ├── ocr_service.py         # Multi-engine OCR text extraction
-│   │   ├── report_parser.py       # Regex & pattern report parser
-│   │   ├── normalizer.py          # Unit & range normalization
-│   │   ├── extractor.py           # Lab value extraction logic
-│   │   ├── analytics_service.py   # Trend analysis & correlation matrix generation
-│   │   ├── comparison_service.py  # Report comparison & delta calculation engine
-│   │   ├── risk_engine.py         # Health risk evaluation engine
-│   │   ├── insights.py            # Structured clinical observations engine
-│   │   └── doctor_taxonomy_seed.py# Specialty taxonomy database seeder
+│   ├── services/                  # Core Business Logic & Analytics Engines
+│   │   ├── ocr_service.py         # Multi-engine OCR (Tesseract, EasyOCR, PyMuPDF, Poppler)
+│   │   ├── report_parser.py       # Regex lab parameter extraction engine
+│   │   ├── normalizer.py          # Unit & reference range normalization
+│   │   ├── extractor.py           # Lab value parsing & status classification
+│   │   ├── analytics_service.py   # Trend analysis & Pearson correlation heatmaps
+│   │   ├── comparison_service.py  # Report comparison & parameter delta engine
+│   │   ├── risk_engine.py         # Patient health risk evaluation engine
+│   │   ├── insights.py            # Automated clinical observations engine
+│   │   └── doctor_taxonomy_seed.py# Medical categories & specialties database seeder
 │   │
 │   └── tests/                     # Automated Test Suite
-│       ├── test_agent_security_and_tools.py
-│       ├── test_ai_security.py
-│       ├── test_ollama_langgraph.py
-│       └── test_suggested_questions.py
+│       ├── test_agent_security_and_tools.py # MCP tools & security context tests
+│       ├── test_ai_security.py             # Unauthorized doctor access tests
+│       ├── test_ollama_langgraph.py        # LangGraph execution & node tests
+│       └── test_suggested_questions.py     # Follow-up question generator tests
 │
 └── frontend/                      # React 18 Frontend Architecture
-    ├── index.html                 # Main HTML entrypoint
-    ├── vite.config.js             # Vite development server configuration
-    ├── tailwind.config.js         # Tailwind CSS theme configuration
-    ├── package.json               # Frontend dependencies
+    ├── index.html                 # Main HTML document template
+    ├── vite.config.js             # Vite build & proxy configuration
+    ├── tailwind.config.js         # Tailwind CSS styling configuration
+    ├── postcss.config.js          # PostCSS processor configuration
+    ├── package.json               # Frontend dependencies manifest
     │
     └── src/
-        ├── App.jsx                # Application router & layout controller
-        ├── pages/                 # Full-Page React Components
-        │   ├── PatientDashboard.jsx   # Patient overview dashboard
-        │   ├── DoctorDashboard.jsx    # Doctor overview dashboard
-        │   ├── DoctorInterface.jsx    # Doctor patient inspection view
-        │   ├── Reports.jsx            # All reports list & upload interface
-        │   ├── ReportViewer.jsx       # Single report viewer & parameter breakdown
-        │   ├── HealthSummaryPage.jsx  # Health metrics & parameter status
-        │   ├── CorrelationPage.jsx    # Parameter correlation heatmap
-        │   ├── Medicines.jsx          # Current & past medicine tracker
-        │   ├── FindDoctors.jsx        # Doctor discovery & access request
-        │   ├── PatientProfile.jsx     # Patient medical profile editor
-        │   └── DoctorProfile.jsx      # Doctor professional profile editor
+        ├── App.jsx                # Router, Auth Provider & Protected Routes
+        ├── main.jsx               # React DOM entrypoint
+        ├── index.css              # Global styles & Tailwind directives
         │
-        └── components/            # Reusable UI Components
-            ├── AIAssistantModal.jsx   # Floating AI Assistant modal with suggested queries
-            ├── TrendChart.jsx         # Time-series parameter charts
-            ├── InsightsPanel.jsx      # AI insight notification card
-            ├── RiskBadge.jsx          # Color-coded risk status badges
-            └── Layout.jsx             # Navigation header & sidebar wrapper
+        ├── contexts/
+        │   └── AuthContext.jsx    # User session state, JWT token storage & login/logout
+        │
+        ├── pages/                 # Full-Page React Components (14 Views)
+        │   ├── Login.jsx          # Login view
+        │   ├── Register.jsx       # Registration view with Patient/Doctor role selection
+        │   ├── PatientDashboard.jsx # Executive patient health dashboard
+        │   ├── DoctorDashboard.jsx  # Doctor practice dashboard & patient list
+        │   ├── DoctorInterface.jsx  # Doctor patient inspection view & notes manager
+        │   ├── Reports.jsx        # Report upload drag-and-drop & report catalog
+        │   ├── ReportViewer.jsx   # Single report details, lab table & document view
+        │   ├── HealthSummaryPage.jsx # Health metrics & parameter status overview
+        │   ├── HealthTrendsPage.jsx # Longitudinal health trends & parameter trajectory view
+        │   ├── MedicalDashboard.jsx# Multi-parameter comparative health view
+        │   ├── Medicines.jsx      # Current & past medication tracker
+        │   ├── FindDoctors.jsx    # Doctor directory & access request interface
+        │   ├── PatientProfile.jsx # Patient medical history & profile editor
+        │   └── DoctorProfile.jsx  # Doctor professional credentials & clinic profile
+        │
+        └── components/            # Reusable UI Components (11 Components)
+            ├── AIAssistantModal.jsx # Floating AI Assistant chat modal with citations
+            ├── Layout.jsx         # Sidebar navigation & header container
+            ├── TrendChart.jsx     # Recharts lab value time-series chart
+            ├── ParameterCard.jsx  # Individual lab parameter status display
+            ├── InsightsPanel.jsx  # AI clinical insights & observation card
+            ├── RiskBadge.jsx      # Color-coded risk status badges
+            ├── FormComponents.jsx # Reusable form fields & selectors
+            ├── EnhancedCards.jsx  # Styled summary & metrics display cards
+            ├── Skeletons.jsx      # Loading skeleton components
+            ├── Toast.jsx          # Toast notification provider & alerts
+            └── RoleRoute.jsx      # Route protection guard by user role
 ```
 
 ---
 
 ## 🗄️ Data Architecture & Database Models
 
-The relational database model (SQLAlchemy ORM) enforces high integrity across user roles, medical records, and access permissions:
+The database schema (SQLAlchemy ORM) defines 11 interlinked tables enforcing strict data integrity:
 
-| Table | Model Class | Key Fields & Relationships |
+| Table Name | Model Class | Key Fields & Relationships |
 | :--- | :--- | :--- |
-| `users` | `User` | `id`, `email`, `password_hash`, `full_name`, `role` (`patient`/`doctor`), `doctor_category_id`, `doctor_specialty_id`. Relationships: `reports`, `medicines`, `doctor_profile`, `patient_profile`. |
+| `users` | `User` | `id`, `email`, `password_hash`, `full_name`, `role` (`patient`/`doctor`), `doctor_category_id`, `doctor_specialty_id`, `created_at`. Relates to: `reports`, `medicines`, `doctor_profile`, `patient_profile`. |
 | `patient_profiles` | `PatientProfile` | `user_id`, `age`, `gender`, `height_cm`, `weight_kg`, `bmi`, `blood_group`, `allergies`, `chronic_conditions`, `emergency_contact`. |
-| `doctor_profiles` | `DoctorProfile` | `user_id`, `degrees`, `specialization`, `experience_years`, `license_number`, `clinic_name`, `clinic_address`, `clinic_phone`. |
-| `doctor_categories`| `DoctorCategory` | `id`, `name`, `description`. Organizes doctor specialties into broader clinical areas (e.g., Cardiology, Endocrinology). |
+| `doctor_profiles` | `DoctorProfile` | `user_id`, `degrees`, `specialization`, `experience_years`, `license_number`, `clinic_name`, `clinic_address`, `clinic_phone`, `clinic_email`, `bio`. |
+| `doctor_categories`| `DoctorCategory` | `id`, `name`, `description`. Categorizes doctor specialties (e.g., General Medicine, Cardiology, Endocrinology). |
 | `doctor_specialties` | `DoctorSpecialty` | `id`, `category_id`, `name`, `description`. Specific medical sub-specialty. |
-| `patient_doctor_access` | `PatientDoctorAccess` | `patient_id`, `doctor_id`, `status` (`pending`, `approved`/`accepted`, `rejected`, `revoked`). Enforces doctor-patient data sharing boundaries. |
+| `patient_doctor_access` | `PatientDoctorAccess` | `patient_id`, `doctor_id`, `status` (`pending`, `approved`/`accepted`, `rejected`, `revoked`), `requested_by`, `request_date`, `response_date`. |
 | `report_categories`| `ReportCategory` | `id`, `name`, `description`. Report types (e.g., Blood Test, Lipid Profile, Thyroid Panel). |
-| `reports` | `Report` | `id`, `user_id`, `file_name`, `file_path`, `ocr_status`, `extracted_text`, `ai_summary`, `report_date`. |
+| `reports` | `Report` | `id`, `user_id`, `category_id`, `file_name`, `file_path`, `ocr_status`, `extracted_text`, `ai_summary`, `report_date`, `upload_date`. |
 | `lab_values` | `LabValue` | `id`, `report_id`, `parameter_name`, `value`, `unit`, `reference_range`, `is_abnormal`. |
-| `medicines` | `Medicine` | `id`, `user_id`, `name`, `dosage`, `frequency`, `start_date`, `end_date`, `status` (`current`/`past`). |
-| `doctor_notes` | `DoctorNote` | `id`, `doctor_id`, `patient_id`, `report_id`, `note_text`, `note_type` (`consultation`, `examination`, `followup`). |
+| `medicines` | `Medicine` | `id`, `user_id`, `name`, `dosage`, `frequency`, `start_date`, `end_date`, `status` (`current`/`past`), `notes`. |
+| `doctor_notes` | `DoctorNote` | `id`, `doctor_id`, `patient_id`, `report_id`, `note_text`, `note_type` (`consultation`, `examination`, `followup`), `created_at`. |
 
 ---
 
 ## 🤖 AI Agent & MCP Architecture
 
 ### LangGraph Workflow Execution
-When a query is dispatched to `/api/ai/chat`, the `ClinicalAssistantAgent` initializes an `AgentState` object and executes the state graph:
+When a user query is sent to `/api/ai/chat`, the `ClinicalAssistantAgent` builds a `StateGraph` state container and runs through execution nodes:
 
 ```text
-[Input Query] ➔ [Security Scoping] ➔ [Intent Classification Node] ➔ [MCP Tool Resolution] ➔ [LLM Generation Node] ➔ [Response + Sources + Follow-up Questions]
+[Input Query] ➔ [Security Scoping] ➔ [Intent Router] ➔ [MCP Tool Resolution] ➔ [LLM Generation] ➔ [Citations & Suggestions]
 ```
 
-1. **Security Context Creation:** Resolves the requesting user's identity and checks whether doctor access to the target patient is approved.
-2. **Intent Classification:** Determines if the query requires specific tools (e.g., `lab_trend`, `compare_reports`, `patient_history`, `check_drug_interactions`).
-3. **MCP Tool Execution:** Executes tools via `MCPToolRegistry` with target patient filters strictly bound to authorized IDs.
-4. **Context Assembly & Grounding:** Combines retrieved database context, medical glossary entries, and tool results into the prompt context.
-5. **Response & Suggestions:** Formats the final clinical answer with structured citations and automatically generates 3 contextual follow-up questions.
+1. **Security Scoping Node:** Resolves requesting user credentials (`SecurityContext`) and enforces that doctor queries target only authorized patient IDs.
+2. **Intent Router Node:** Evaluates query intent (`CLINICAL`, `MY_DOCTORS`, `DOCTOR_DIRECTORY`, `MY_PATIENTS`, `APPLICATION_HELP`).
+3. **MCP Tool Resolution Node:** Dynamically binds and executes relevant tools from `MCPToolRegistry`.
+4. **LLM Generation Node:** Sends formatted prompt with grounded context to active LLM (`Ollama` or `Groq`).
+5. **Citations & Suggestions Node:** Formats final response with citations (`[Patient Profile]`, `[Lab Parameter: Glucose]`, etc.) and appends 3 follow-up question suggestions via `SuggestionService`.
+
+---
+
+## 🔌 Complete Model Context Protocol (MCP) Tool Suite
+
+The platform includes **18 security-scoped MCP tools** implemented in `backend/mcp/tools.py`:
+
+| Tool Name | Scope / Role | Description |
+| :--- | :--- | :--- |
+| `get_patient_history` | Patient / Doctor | Retrieves full grounded patient history (profile, lab parameters, medicines, notes). |
+| `get_health_summary` | Patient / Doctor | Fetches overall health metrics, report counts, and flagged abnormal lab values. |
+| `get_lab_trend` | Patient / Doctor | Calculates time-series linear regression trend for a specific lab parameter. |
+| `compare_reports` | Patient / Doctor | Deterministically compares two medical reports and calculates parameter deltas. |
+| `calculate_health_risk` | Patient / Doctor | Evaluates health risk levels, risk scores, and confidence metrics. |
+| `search_medical_guidelines` | General | Searches medical terminology, definitions, and standard reference ranges. |
+| `check_drug_interactions` | General | Checks list of active/prescribed medications for known drug interactions. |
+| `search_doctors` | General | Searches doctor directory by name, specialty, clinic, or experience level. |
+| `get_doctor_profile` | General | Retrieves detailed profile information for a specific doctor by ID. |
+| `get_doctor_specialties` | General | Fetches all medical categories and sub-specialties available on the platform. |
+| `get_my_patient_count` | Doctor | Counts active authorized patients connected to the authenticated doctor. |
+| `get_my_patients` | Doctor | Lists all authorized patients with profile details for the authenticated doctor. |
+| `search_my_patients` | Doctor | Searches by name or email within the doctor's authorized active patients. |
+| `resolve_my_patient` | Doctor | Resolves patient name ambiguity strictly within doctor's authorized list. |
+| `get_my_doctors` | Patient | Lists all doctors with access status connected to the authenticated patient. |
+| `get_my_reports` | Patient / Doctor | Retrieves list of uploaded medical reports for the target patient. |
+| `get_my_medicines` | Patient / Doctor | Lists active and past medications for the target patient. |
+| `get_website_help` | General | Provides grounded instructions for using website features and workflows. |
 
 ---
 
 ## 🔒 Security & Access Control Matrix
 
-Data access is guarded by backend middleware (`auth.py`) and authorization dependencies (`check_doctor_access`):
+Data access is strictly enforced by FastAPI authorization dependencies (`auth.py` and `check_doctor_access`):
 
-| Requester Role | Target Data Owner | Access Granted? | Validation Rule |
-| :--- | :--- | :---: | :--- |
-| **Patient** | Self | ✅ Granted | Always allowed to query personal reports, history, and medicines. |
-| **Patient** | Other Patient | ❌ Denied | Patient ID in query payload is overridden with the user's own ID. |
-| **Doctor** | Approved Patient | ✅ Granted | Access allowed if `PatientDoctorAccess` record has status `approved` or `accepted`. |
-| **Doctor** | Unapproved Patient | ❌ Denied | Throws `403 Forbidden` error immediately. |
-| **Unauthenticated**| Any | ❌ Denied | Throws `401 Unauthorized` token error. |
+| Requester Role | Target Data | Status | Access Granted? | Rule / Enforcement |
+| :--- | :--- | :---: | :---: | :--- |
+| **Patient** | Self Data | Any | ✅ Granted | Patients can always access their own reports, trends, and profile. |
+| **Patient** | Other Patient | Any | ❌ Denied | Target patient ID is forced to requesting user's own ID. |
+| **Doctor** | Patient Data | `approved`/`accepted` | ✅ Granted | Allowed if an approved `PatientDoctorAccess` record exists. |
+| **Doctor** | Patient Data | `pending`/`rejected`/`revoked` | ❌ Denied | Throws `403 Forbidden` error immediately. |
+| **Unauthenticated**| Any | None | 开启 Denied | Throws `401 Unauthorized` token missing/expired error. |
 
 ---
 
-## 🔌 API Reference
+## 🔌 Exhaustive API Reference
 
 ### 1. Authentication Endpoints
-- `POST /api/auth/register` — Register new user (Patient or Doctor with taxonomy selection).
-- `POST /api/auth/login` — Authenticate and obtain JWT access token.
+- `POST /api/auth/register` — Register new user (Patient or Doctor with category/specialty selection).
+- `POST /api/auth/login` — Authenticate user and receive JWT access token.
 
-### 2. AI Clinical Assistant Endpoints
-- `POST /api/ai/chat` — Submit query to AI Agent (supports patient ID targeting, report comparison parameters).
+### 2. Medical Reports & OCR Endpoints
+- `POST /api/reports/upload` — Upload medical report PDF or image file (triggers OCR & AI summary).
+- `GET /api/reports` — Fetch all reports for authenticated patient (or authorized target patient).
+- `GET /api/reports/summary` — Get overall summary of patient's reports and lab count.
+- `GET /api/reports/{report_id}` — Get single report details with extracted lab values table.
+- `DELETE /api/reports/{report_id}` — Delete a specific medical report.
+- `GET /api/reports/{report_id}/download` — Download original uploaded report file.
+- `GET /api/lab-values` — Fetch raw extracted lab values across reports.
+
+### 3. AI Clinical Assistant Endpoints
+- `POST /api/ai/chat` — Submit query to AI Assistant (supports `patient_id` targeting).
 - `POST /api/ai/compare-reports` — Request side-by-side longitudinal report comparison data.
 
-### 3. Report & File Endpoints
-- `POST /api/upload` — Upload medical report PDF or image file (triggers asynchronous OCR).
-- `GET /api/reports` — Fetch all reports for the authenticated patient or requested patient.
-- `GET /api/reports/{id}` — Fetch details, extracted lab values, and summary of a specific report.
+### 4. Health Analytics & Visualizations Endpoints
+- `GET /api/analytics/trend/{parameter_name}` — Time-series linear regression trend for a lab parameter.
+- `GET /api/analytics/comparison` — Compare two reports via query parameters `old_id` and `new_id`.
+- `GET /api/analytics/health-summary` — HTML summary of health metrics.
+- `GET /api/analytics/correlation` — Rendered correlation heatmap image response.
+- `GET /api/analytics/health-summary-json` — JSON health metrics and flagged parameters.
+- `GET /api/analytics/correlation-json` — Pearson correlation matrix in JSON format.
+- `GET /api/dashboard` — Unified dashboard metrics endpoint.
+- `GET /api/export/csv` — Export all lab values and report data to downloadable CSV.
 
-### 4. Doctor Discovery & Access System Endpoints
+### 5. Doctor Discovery & Access Control Endpoints
 - `GET /api/doctors` — Search doctors by specialty, category, or experience.
-- `GET /api/doctors/categories` — List available clinical categories and sub-specialties.
-- `POST /api/access/request` — Patient requests access to a doctor.
-- `POST /api/access/approve` — Patient approves a doctor's access request.
-- `POST /api/access/revoke` — Patient revokes access from a doctor.
-- `GET /api/access/my-patients` — Doctor fetches list of authorized active care patients.
+- `GET /api/categories` / `GET /api/specialties` — Fetch doctor specialties and taxonomy.
+- `POST /api/specialties` — Create a new doctor specialty.
+- `GET /api/patient/discovery-stats` — Statistics on available doctors and categories.
+- `GET /api/doctor/assignment-stats` — Doctor statistics on active patients and pending requests.
+- `POST /api/patient/doctor-access` — Request doctor access.
+- `GET /api/patient/doctor-access` — List patient's doctor access requests.
+- `GET /api/doctor/patient-access-requests` — List doctor's incoming access requests.
+- `POST /api/doctor/patient-access-requests/{request_id}/accept` — Accept patient access request.
+- `POST /api/doctor/patient-access-requests/{request_id}/reject` — Reject patient access request.
+- `POST /api/patient/doctor-access/{request_id}/revoke` — Revoke doctor access.
+- `GET /api/users/patients` — Doctor endpoint to fetch authorized patient list.
 
-### 5. Health Analytics & Dashboard Endpoints
-- `GET /api/dashboard/patient` — Get summary metrics (total reports, flagged parameters, recent values).
-- `GET /api/dashboard/doctor` — Get doctor overview dashboard (active patient list, recent activity).
-- `GET /api/analytics/trends` — Fetch time-series values and linear regression data for a parameter.
-- `GET /api/analytics/correlations` — Fetch parameter correlation heatmap matrix.
+### 6. User Profiles, Notes & Medication Endpoints
+- `GET /api/patient/profile` / `POST /api/patient/profile` / `PUT /api/patient/profile` — Manage patient biometric profile.
+- `GET /api/doctor/profile` / `POST /api/doctor/profile` / `PUT /api/doctor/profile` — Manage doctor professional profile.
+- `GET /api/doctor/statistics` — Fetch practice metrics for doctor dashboard.
+- `GET /api/doctor/patient/{patient_id}` — Inspect approved patient details, reports, and history.
+- `GET /api/medicines` / `POST /api/medicines` / `PUT /api/medicines/{id}` / `DELETE /api/medicines/{id}` — Medication regimen management.
+- `GET /api/doctor-notes` / `POST /api/doctor-notes` — Clinical doctor consultation notes management.
 
-### 6. Profile & Medicine Endpoints
-- `GET /api/profile/patient` / `POST /api/profile/patient` — Manage patient medical profile.
-- `GET /api/profile/doctor` / `POST /api/profile/doctor` — Manage doctor professional profile.
-- `GET /api/medicines` / `POST /api/medicines` — Manage active and past medications.
+---
+
+## 🎨 Frontend Component & Page Inventory
+
+### Pages (`frontend/src/pages/`)
+1. **`Login.jsx`**: User authentication view with JWT handling.
+2. **`Register.jsx`**: Role-based registration for Patients and Doctors with taxonomy selectors.
+3. **`PatientDashboard.jsx`**: Main patient landing hub with quick stats, recent reports, flagged values, and trends.
+4. **`DoctorDashboard.jsx`**: Practice dashboard showing connected patients, pending access requests, and quick stats.
+5. **`DoctorInterface.jsx`**: Detailed doctor inspection page for authorized patient records, report comparisons, and doctor notes.
+6. **`Reports.jsx`**: Report library with file drag-and-drop upload interface (`react-dropzone`).
+7. **`ReportViewer.jsx`**: In-depth report viewer displaying extracted lab value table, OCR status, AI summary, and document download link.
+8. **`HealthSummaryPage.jsx`**: Dedicated health summary analytics view with parameter status breakdown.
+9. **`CorrelationPage.jsx`**: Interactive lab parameter correlation matrix heatmap.
+10. **`MedicalDashboard.jsx`**: Multi-parameter health overview dashboard.
+11. **`Medicines.jsx`**: Medication tracking manager with current/past tabs and prescription details.
+12. **`FindDoctors.jsx`**: Doctor discovery directory with category/specialty filters and access request buttons.
+13. **`PatientProfile.jsx`**: Patient biometric profile editor (age, height, weight, BMI, blood group, allergies).
+14. **`DoctorProfile.jsx`**: Doctor professional profile editor (degrees, license, experience, clinic details).
+
+### UI Components (`frontend/src/components/`)
+1. **`AIAssistantModal.jsx`**: Floating AI Assistant modal featuring grounded citations, tool badges, and suggested follow-ups.
+2. **`Layout.jsx`**: Global application shell with responsive navigation header and role-based sidebar links.
+3. **`TrendChart.jsx`**: Interactive Recharts time-series chart component for lab parameter values over time.
+4. **`ParameterCard.jsx`**: Parameter display card showing latest value, unit, reference range, and status tag.
+5. **`InsightsPanel.jsx`**: Notification card rendering AI clinical observations and warnings.
+6. **`RiskBadge.jsx`**: Color-coded risk status badges (`Normal`, `Moderate Risk`, `High Risk`).
+7. **`FormComponents.jsx`**: Standardized text inputs, select dropdowns, and button controls.
+8. **`EnhancedCards.jsx`**: Glassmorphic summary cards with numerical statistics and icons.
+9. **`Skeletons.jsx`**: Animated content skeleton loaders for asynchronous API calls.
+10. **`Toast.jsx`**: Application-wide toast alert provider.
+11. **`RoleRoute.jsx`**: Route protection wrapper enforcing `patient` or `doctor` role access.
 
 ---
 
@@ -294,14 +404,14 @@ Data access is guarded by backend middleware (`auth.py`) and authorization depen
 
 ### Prerequisites
 - **Python:** 3.10 or higher
-- **Node.js:** v18.0 or higher
-- **Tesseract OCR:** Installed on system (and added to system PATH)
-- **Poppler Utilities:** Required for PDF to image conversion (`pdf2image`)
+- **Node.js:** v18.0 or higher (with npm)
+- **Tesseract OCR:** Installed on system (optional but recommended for image OCR)
+- **Poppler Utilities / PyMuPDF:** PDF text extraction (PyMuPDF `fitz` is installed via PyPI as zero-dependency fallback)
 
-#### Installing System Dependencies
+#### Installing OCR System Dependencies
 - **Windows:**
   - Tesseract OCR: Download installer from [UB-Mannheim Tesseract](https://github.com/UB-Mannheim/tesseract/wiki) or install via Chocolatey: `choco install tesseract`
-  - Poppler: Download binary release from [poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases) and extract to `C:/poppler/Library/bin`.
+  - Poppler (Optional): Download binary release from [poppler-windows](https://github.com/oschwartz10612/poppler-windows/releases) and extract to `C:/poppler/Library/bin`.
 - **macOS:** `brew install python node tesseract poppler`
 - **Linux (Ubuntu/Debian):** `sudo apt-get install python3 python3-venv nodejs npm tesseract-ocr poppler-utils`
 
@@ -313,7 +423,7 @@ Data access is guarded by backend middleware (`auth.py`) and authorization depen
 cd medical-report-analyzer/backend
 ```
 
-Create a virtual environment and activate it:
+Create a Python virtual environment and activate it:
 ```bash
 # Windows (PowerShell)
 python -m venv venv
@@ -343,7 +453,7 @@ DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_NAME=medical_report_analysis
 
-# Security
+# Security & JWT Token Config
 SECRET_KEY=your-super-secret-key-change-this-in-production
 ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=60
@@ -363,7 +473,7 @@ GROQ_API_KEY=your_groq_api_key_here
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL=llama-3.1-8b-instant
 
-# AI Generation Control
+# AI Generation Parameters
 AI_TEMPERATURE=0.1
 AI_MAX_TOKENS=1024
 AI_TIMEOUT_SECONDS=30
@@ -371,29 +481,29 @@ AI_TIMEOUT_SECONDS=30
 
 ---
 
-### Step 3: Set Up Ollama Local LLM (Optional for Offline Inference)
+### Step 3: Set Up Ollama Local LLM (Optional for Offline Execution)
 
-If using `LLM_PROVIDER=ollama`:
-1. Install Ollama from [ollama.com](https://ollama.com).
-2. Pull your desired model:
+If `LLM_PROVIDER=ollama`:
+1. Download and install Ollama from [ollama.com](https://ollama.com).
+2. Pull your model:
    ```bash
    ollama pull qwen2.5:3b
    ```
-3. Verify Ollama is running at `http://localhost:11434`.
+3. Start Ollama service (`http://localhost:11434`).
 
 ---
 
-### Step 4: Run Backend Server
+### Step 4: Run Backend Development Server
 
-Start the FastAPI development server:
+Start the FastAPI server:
 ```bash
 python main.py
 ```
-*The backend API will be live at `http://localhost:8000`. Interactive OpenAPI documentation will be accessible at `http://localhost:8000/docs`.*
+*The FastAPI backend will start at `http://localhost:8000`. Access interactive API documentation at `http://localhost:8000/docs`.*
 
 ---
 
-### Step 5: Configure & Run Frontend
+### Step 5: Configure & Run Frontend Application
 
 Open a new terminal window:
 
@@ -408,31 +518,31 @@ npm run dev
 
 ## 🧪 Testing & Quality Assurance
 
-The backend repository includes an extensive test suite verifying AI agent execution, MCP tool boundaries, role-based security, and fallback behaviors.
+The backend contains a test suite in `backend/tests/` using `pytest`.
 
-Run all tests from the `backend/` directory:
+Run all tests from `backend/`:
 
 ```bash
 cd backend
 pytest tests/ -v
 ```
 
-### Key Test Suites:
-- `test_agent_security_and_tools.py`: Tests MCP tool registration, execution, and security scoping.
-- `test_ai_security.py`: Tests role-based access control and unauthorized doctor query rejection.
+### Key Test Files:
+- `test_agent_security_and_tools.py`: Tests MCP tool registration, execution logic, and security scoping.
+- `test_ai_security.py`: Tests role-based access control and unauthorized doctor query blocking.
 - `test_ollama_langgraph.py`: Verifies LangGraph agent initialization and execution nodes.
-- `test_suggested_questions.py`: Tests automatic follow-up query recommendation logic.
+- `test_suggested_questions.py`: Tests follow-up query suggestion generation logic.
 
 ---
 
 ## 🚀 Limitations & Future Roadmap
 
 ### Current System Boundaries
-- **Local SQLite/MySQL default:** Configured for development and single-server deployments.
-- **Language Support:** Primary OCR patterns optimized for English-language medical laboratory reports.
+- **Local SQLite default:** SQLite database enabled by default for rapid local deployment; PyMySQL supported for MySQL production instances.
+- **English Language OCR:** Extraction rules optimized primarily for English medical lab reports.
 
 ### Future Roadmap
-- [ ] **HIPAA-Compliant Audit Logging:** Append-only cryptographic audit logs for every patient record access.
-- [ ] **DICOM & Radiological Image Viewing:** Integration of DICOM image previewers for X-ray and MRI scan reports.
-- [ ] **Multi-Language OCR & Parsing:** Multilingual extraction support for global medical lab standards.
-- [ ] **HL7 / FHIR Interoperability:** Native export and import of healthcare records adhering to HL7 FHIR standards.
+- [ ] **HIPAA Audit Logging:** Cryptographic append-only log tracking every patient record viewing event.
+- [ ] **DICOM Radiological Imaging:** Built-in viewer for X-ray, CT, and MRI scans.
+- [ ] **Multi-Language OCR Support:** Support for international lab report formats and languages.
+- [ ] **HL7 FHIR Interoperability:** Native import and export of FHIR clinical resources.

@@ -41,6 +41,9 @@ Thumbs.db
 .env.local
 
 # Documentation and temporary files (except README.md)
+docs/
+IMPLEMENTATION_NOTES.md
+load_tests/
 ARCHITECTURE.md
 COMPONENT_API_REFERENCE.md
 DASHBOARD_QUICKSTART.md

@@ -4,15 +4,9 @@ import api from '../utils/api'
 export const getHealthSummary = () =>
   api.get('/api/analytics/health-summary', { responseType: 'blob' }).then((res) => res.data)
 
-export const getCorrelation = () =>
-  api.get('/api/analytics/correlation', { responseType: 'blob' }).then((res) => res.data)
-
 // JSON endpoints for native rendering
 export const getHealthSummaryJson = () =>
   api.get('/api/analytics/health-summary-json').then((res) => res.data)
 
-export const getCorrelationJson = () =>
-  api.get('/api/analytics/correlation-json').then((res) => res.data)
-
 export const getParameterTrend = (parameterName) =>
-  api.get(`/api/analytics/trend/${encodeURIComponent(parameterName)}`).then((res) => res.data)
+  api.get(`/api/analytics/trend/${encodeURIComponent(parameterName)}`).then((res) => res.data)

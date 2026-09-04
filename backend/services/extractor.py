@@ -1,47 +1,74 @@
+"""
+Extractor Service for Medical Report Analyzer.
+Extracts metadata and laboratory test candidates from OCR text lines.
+"""
+
 import re
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 from logging_config import get_logger
+from services.lab_candidate_extractor import LabCandidateExtractor
 
 logger = get_logger(__name__)
 
 
 class Extractor:
     def __init__(self):
-        pass
+        self.candidate_extractor = LabCandidateExtractor()
 
     def extract(self, lines: List[str]) -> Dict[str, Any]:
-        # Parse OCR lines into report_info (metadata) and raw_tests (measurements)
-        data = {
+        """
+        Parse OCR lines into report_info (metadata) and raw_tests (measurements).
+        Utilizes parameter-first ontology candidate extraction and metadata rejection.
+        """
+        data: Dict[str, Any] = {
             "report_info": {},
-            "raw_tests": []
+            "raw_tests": [],
+            "rejected_tests": []
         }
 
+        # 1. Extract Report Metadata (Patient Name, Age, Sex, Report Date, IDs)
         for line in lines:
-            line = line.strip()
-
-            # Try extracting metadata first
-            meta = self._extract_metadata(line)
-            if meta:
-                data["report_info"].update(meta)
+            line_clean = line.strip()
+            if not line_clean:
                 continue
 
-            # Try extracting test line
-            test = self._extract_test(line)
-            if test:
-                data["raw_tests"].append(test)
+            meta = self._extract_metadata(line_clean)
+            if meta:
+                data["report_info"].update(meta)
+
+        # 2. Extract Validated Laboratory Candidates
+        accepted_results, rejected_results = self.candidate_extractor.extract_candidates(lines)
+
+        for res in accepted_results:
+            data["raw_tests"].append({
+                "test_description": res.canonical_name or res.raw_text,
+                "result": res.value,
+                "unit": res.unit,
+                "ref_range": res.ref_range,
+                "confidence": res.confidence,
+                "reasons": res.reasons,
+                "source_section": res.source_section
+            })
+
+        for res in rejected_results:
+            data["rejected_tests"].append({
+                "raw_text": res.raw_text,
+                "reasons": res.reasons,
+                "confidence": res.confidence
+            })
 
         return data
 
     def _extract_metadata(self, line: str) -> Dict[str, Any]:
-        # Extract patient info (name, age, gender, dates, IDs) if line matches patterns
+        """Extract patient metadata if line matches metadata key patterns."""
         patterns = {
-            "patient_name": r"(Name|Patient Name)\s*[:\-]\s*(.+)",
-            "age": r"Age\s*[:\-]\s*(\d+)",
-            "gender": r"(Gender|Sex)\s*[:\-]\s*(Male|Female)",
-            "report_id": r"(Report ID|Lab ID)\s*[:\-]\s*(\S+)",
-            "patient_id": r"(Patient ID)\s*[:\-]\s*(\S+)",
-            "collection_date": r"(Collection Date)\s*[:\-]\s*(.+)",
-            "report_date": r"(Report Date)\s*[:\-]\s*(.+)"
+            "patient_name": r"(?:Patient\s*Name|Name)\s*[:\-]\s*([A-Za-z\s\.]+)",
+            "age": r"(?:Age|PT\s*AGE)\s*[:\-]?\s*(\d+)",
+            "gender": r"(?:Gender|Sex)\s*[:\-]?\s*(Male|Female|M|F)",
+            "report_id": r"(?:Report\s*ID|Lab\s*ID|Accession\s*No)\s*[:\-]\s*(\S+)",
+            "patient_id": r"(?:Patient\s*ID|UHID|PID)\s*[:\-]\s*(\S+)",
+            "collection_date": r"(?:Collection\s*Date|Collected\s*On)\s*[:\-]\s*(.+)",
+            "report_date": r"(?:Report\s*Date|Released\s*On|Date)\s*[:\-]\s*(\d{2}[/\-\.]\d{2}[/\-\.]\d{4}|\d{4}[/\-\.]\d{2}[/\-\.]\d{2})"
         }
 
         extracted = {}
@@ -49,40 +76,8 @@ class Extractor:
         for key, pattern in patterns.items():
             match = re.search(pattern, line, re.IGNORECASE)
             if match:
-                extracted[key] = match.group(2 if key == "patient_name" else 1)
+                val = match.group(1).strip()
+                if val:
+                    extracted[key] = val
 
         return extracted
-
-    def _extract_test(self, line: str) -> Dict[str, Any]:
-        # Extract lab value: test_name value unit ref_range
-
-        pattern = r"""
-            ^([A-Za-z0-9\s\-\(\)%]+?)      # test name
-            \s+
-            ([\d.]+)                       # value
-            \s*
-            ([a-zA-Z/%]+)?                 # unit (optional)
-            \s*
-            (\d+\s*-\s*\d+)?               # reference range (optional)
-        """
-
-        match = re.match(pattern, line, re.VERBOSE)
-
-        if not match:
-            return None
-
-        name, value, unit, ref = match.groups()
-
-        return {
-            "test_description": name.strip(),
-            "result": self._safe_float(value),
-            "unit": unit,
-            "ref_range": ref
-        }
-
-    def _safe_float(self, value):
-        # Try to convert to float; return None if invalid
-        try:
-            return float(value)
-        except:
-            return None
