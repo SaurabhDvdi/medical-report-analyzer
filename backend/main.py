@@ -1,6 +1,18 @@
 import os
+import sys
 import uuid
 import uvicorn
+
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    for p in sys.path:
+        for candidate in ["sklearn/.libs", "numpy.libs", "pandas.libs"]:
+            target = os.path.join(p, *candidate.split("/"))
+            if os.path.isdir(target):
+                try:
+                    os.add_dll_directory(target)
+                except Exception:
+                    pass
+
 from fastapi import FastAPI, Request, Response
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,17 +44,34 @@ try:
 except Exception as e:
     logger.warning(f"Database table initialization notice: {e}")
 
-# Diagnostic AI Provider & Model Resolution (Never logs secrets/keys)
+# Startup Validation for AI Configuration & Readiness (Sections 23 & 24)
 try:
     from ai.config import AIConfig
-    resolved_model = (
-        AIConfig.GEMINI_MODEL if AIConfig.LLM_PROVIDER == "gemini"
-        else AIConfig.GROQ_MODEL if AIConfig.LLM_PROVIDER == "groq"
-        else AIConfig.OLLAMA_MODEL
-    )
-    logger.info(f"AI Service Initialized: Provider='{AIConfig.LLM_PROVIDER}', Model='{resolved_model}'")
+    from ai.llm_service import LLMService
+    validation = AIConfig.validate()
+    if not validation["valid"]:
+        for err in validation.get("errors", []):
+            logger.error(f"[CONFIG_ERROR] {err}")
+    for warn in validation.get("warnings", []):
+        logger.warning(f"[CONFIG_WARN] {warn}")
+
+    llm_svc = LLMService()
+    resolved_model = validation.get("primary_model")
+    fallback_model = validation.get("fallback_model")
+    logger.info(f"AI Service Initialized: Provider='{AIConfig.LLM_PROVIDER}', Primary='{resolved_model}', Fallback='{fallback_model}'")
+
+    if AIConfig.LLM_PROVIDER == "ollama":
+        if not llm_svc.check_ollama_reachable():
+            logger.warning(f"Ollama server not reachable at {AIConfig.OLLAMA_BASE_URL}. AI endpoints will operate in rule-based fallback mode.")
+        else:
+            primary_ok = llm_svc.check_model_available(AIConfig.OLLAMA_MODEL)
+            fallback_ok = llm_svc.check_model_available(AIConfig.OLLAMA_FALLBACK_MODEL)
+            if not primary_ok:
+                logger.warning(f"Primary Ollama model '{AIConfig.OLLAMA_MODEL}' is not pulled.")
+            if not primary_ok and not fallback_ok:
+                logger.warning("Neither primary nor fallback Ollama model is available. AI readiness degraded to rule-based fallback.")
 except Exception as ai_err:
-    logger.warning(f"AI diagnostic initialization notice: {ai_err}")
+    logger.warning(f"AI startup validation notice: {ai_err}")
 
 # Ensure upload and chart directories exist
 UPLOAD_DIR = "uploads"

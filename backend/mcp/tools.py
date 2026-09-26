@@ -23,6 +23,7 @@ class SecurityContext:
         self.requesting_user_id = requesting_user_id
         self.requesting_user_role = requesting_user_role
         self.target_patient_id = target_patient_id
+        self.active_patient_id = target_patient_id
         self.db = db
 
 

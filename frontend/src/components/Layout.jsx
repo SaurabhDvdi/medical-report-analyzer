@@ -18,6 +18,7 @@ import {
   PieChart
 } from 'lucide-react'
 import AIAssistantModal from './AIAssistantModal'
+import DoctorNotificationBell from './DoctorNotificationBell'
 
 export default function Layout() {
   const { user, logout } = useAuth()
@@ -168,6 +169,7 @@ export default function Layout() {
           </div>
 
           <div className="flex items-center gap-3">
+            {isDoctor && <DoctorNotificationBell />}
             <span className="hidden sm:inline-flex items-center gap-1.5 text-xs bg-slate-100 border border-slate-200 text-slate-700 px-3 py-1.5 rounded-full font-medium">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
               API Connected
@@ -227,8 +229,10 @@ export default function Layout() {
         </main>
       </div>
 
-      {/* Floating AI Assistant Integration */}
-      <AIAssistantModal role={user?.role} patientName={user?.full_name || user?.name} />
+      {/* Floating AI Assistant Integration for Patients */}
+      {user?.role === 'patient' && (
+        <AIAssistantModal role="patient" patientName={user?.full_name || user?.name} />
+      )}
     </div>
   )
 }

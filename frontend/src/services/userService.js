@@ -47,6 +47,22 @@ export const getPatientAccessRequests = (params) =>
 export const approvePatientAccess = (requestId, action) =>
   api.post(`/api/doctor/patient-access-requests/${requestId}/${action}`)
 
+// Doctor Notifications
+export const getDoctorNotifications = () =>
+  api.get('/api/doctor/notifications').then((res) => res.data)
+
+export const getDoctorNotificationCount = () =>
+  api.get('/api/doctor/notifications/unread-count').then((res) => res.data)
+
+export const markDoctorNotificationsRead = () =>
+  api.post('/api/doctor/notifications/mark-read').then((res) => res.data)
+
+export const acceptDoctorAccessRequest = (requestId) =>
+  api.post(`/api/doctor/access-requests/${requestId}/accept`).then((res) => res.data)
+
+export const rejectDoctorAccessRequest = (requestId) =>
+  api.post(`/api/doctor/access-requests/${requestId}/reject`).then((res) => res.data)
+
 // Discovery Stats
 export const getDiscoveryStats = () =>
   api.get('/api/patient/discovery-stats').then((res) => res.data)

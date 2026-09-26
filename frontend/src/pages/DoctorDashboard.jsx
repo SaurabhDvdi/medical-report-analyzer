@@ -64,6 +64,8 @@ export default function DoctorDashboard() {
     mutationFn: ({ requestId, action }) => approvePatientAccess(requestId, action),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['patient-access-requests'] })
+      queryClient.invalidateQueries({ queryKey: ['doctor-notifications'] })
+      queryClient.invalidateQueries({ queryKey: ['doctor-notification-count'] })
       queryClient.invalidateQueries({ queryKey: ['doctor-statistics'] })
       queryClient.invalidateQueries({ queryKey: ['assignment-stats'] })
       queryClient.invalidateQueries({ queryKey: ['patients'] })

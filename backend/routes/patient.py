@@ -1,7 +1,15 @@
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from database import get_db
-from models import User, PatientProfile, PatientDoctorAccess, DoctorCategory, DoctorSpecialty
+from models import (
+    User,
+    PatientProfile,
+    PatientDoctorAccess,
+    DoctorCategory,
+    DoctorSpecialty,
+    Notification,
+)
 from schemas import PatientProfileCreate, PatientDoctorAccessCreate
 from auth import get_current_user
 from logging_config import get_logger
@@ -212,12 +220,57 @@ async def request_doctor_access(
         if existing.status == "pending":
             return {"message": "Access request already pending", "status": "pending", "id": existing.id}
         existing.status = "pending"
+        existing.updated_at = datetime.now(timezone.utc)
+        
+        # Reset or create notification for doctor
+        notif = (
+            db.query(Notification)
+            .filter(
+                Notification.recipient_doctor_id == did,
+                Notification.access_request_id == existing.id,
+            )
+            .first()
+        )
+        if not notif:
+            notif = Notification(
+                recipient_doctor_id=did,
+                patient_id=pid,
+                access_request_id=existing.id,
+                notification_type="PATIENT_ACCESS_REQUEST",
+                title="Patient Access Request",
+                message="Requested access to their medical profile and reports.",
+                is_read=False,
+                created_at=datetime.now(timezone.utc),
+                resolved_at=None,
+            )
+            db.add(notif)
+        else:
+            notif.is_read = False
+            notif.resolved_at = None
+            notif.created_at = datetime.now(timezone.utc)
+            notif.message = "Requested access to their medical profile and reports."
+            db.add(notif)
+
         db.commit()
         db.refresh(existing)
         return {"message": "Access re-requested", "status": "pending", "id": existing.id}
 
     rec = PatientDoctorAccess(patient_id=pid, doctor_id=did, status="pending")
     db.add(rec)
+    db.flush()
+
+    notif = Notification(
+        recipient_doctor_id=did,
+        patient_id=pid,
+        access_request_id=rec.id,
+        notification_type="PATIENT_ACCESS_REQUEST",
+        title="Patient Access Request",
+        message="Requested access to their medical profile and reports.",
+        is_read=False,
+        created_at=datetime.now(timezone.utc),
+        resolved_at=None,
+    )
+    db.add(notif)
     db.commit()
     db.refresh(rec)
     return {"message": "Access request sent", "status": "pending", "id": rec.id}

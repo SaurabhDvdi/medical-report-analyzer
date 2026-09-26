@@ -214,3 +214,29 @@ class PatientProfile(Base):
     
     user = relationship("User", back_populates="patient_profile")
 
+
+class Notification(Base):
+    """Doctor notifications for access requests and clinical system events."""
+
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipient_doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    patient_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    access_request_id = Column(Integer, ForeignKey("patient_doctor_access.id"), nullable=True, index=True)
+    notification_type = Column(String(50), default="PATIENT_ACCESS_REQUEST", nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=True)
+    is_read = Column(Boolean, default=False, nullable=False, index=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    resolved_at = Column(DateTime, nullable=True)
+
+    doctor = relationship("User", foreign_keys=[recipient_doctor_id])
+    patient = relationship("User", foreign_keys=[patient_id])
+    access_request = relationship("PatientDoctorAccess")
+
+    __table_args__ = (
+        Index("ix_notifications_doctor_read", "recipient_doctor_id", "is_read"),
+        Index("ix_notifications_doctor_created", "recipient_doctor_id", "created_at"),
+    )
+

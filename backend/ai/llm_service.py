@@ -1,7 +1,7 @@
 import time
 import threading
 import httpx
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from ai.config import AIConfig
 from logging_config import get_logger
 
@@ -89,17 +89,35 @@ class LLMService:
     def timeout(self) -> float:
         return AIConfig.AI_TIMEOUT_SECONDS
 
-    def get_chat_model(self) -> Any:
-        """Return configured chat model based on LLM_PROVIDER."""
+    @property
+    def primary_model(self) -> str:
+        if self.provider == "ollama":
+            return getattr(AIConfig, "OLLAMA_MODEL", "qwen2.5:1.5b")
+        return self.model
+
+    @property
+    def fallback_model(self) -> Optional[str]:
+        if self.provider == "ollama":
+            return getattr(AIConfig, "OLLAMA_FALLBACK_MODEL", "qwen2.5:3b")
+        return None
+
+    def get_chat_model(self, model_name: Optional[str] = None) -> Any:
+        """Return configured chat model based on LLM_PROVIDER.
+        Accepts optional model_name to allow explicit primary vs fallback instantiation."""
+        target_model = model_name or self.model
+
         if self.provider == "ollama":
             try:
                 from langchain_ollama import ChatOllama
-                logger.info(f"Initializing ChatOllama: model={self.model}, base_url={self.base_url}")
+                threads = getattr(AIConfig, "OLLAMA_THREADS", 8)
+                logger.info(f"Initializing ChatOllama: model={target_model}, base_url={self.base_url}, threads={threads}")
                 return ChatOllama(
-                    model=self.model,
+                    model=target_model,
                     base_url=self.base_url,
                     temperature=self.temperature,
-                    timeout=self.timeout
+                    timeout=self.timeout,
+                    num_predict=self.max_tokens,
+                    num_thread=threads
                 )
             except ImportError:
                 raise RuntimeError("langchain-ollama package is not installed. Run: pip install langchain-ollama")
@@ -193,10 +211,11 @@ class LLMService:
                 _ollama_failed_until = time.monotonic() + NEGATIVE_CACHE_TTL
             return False
 
-    def check_model_available(self) -> bool:
-        """Check if target model is pulled in Ollama."""
+    def check_model_available(self, model_name: Optional[str] = None) -> bool:
+        """Check if target model or fallback model is pulled in Ollama."""
         if self.provider != "ollama":
             return True
+        target = model_name or self.model
         try:
             with httpx.Client(timeout=1.0) as client:
                 resp = client.get(f"{AIConfig.OLLAMA_BASE_URL.rstrip('/')}/api/tags")
@@ -204,9 +223,15 @@ class LLMService:
                     models = resp.json().get("models", [])
                     names = [m.get("name", "") for m in models]
                     for name in names:
-                        if self.model in name or name in self.model:
+                        if target in name or name in target:
                             return True
-                    logger.warning(f"Model '{self.model}' not found in Ollama installed models: {names}")
+                    fallback = getattr(AIConfig, "OLLAMA_FALLBACK_MODEL", "qwen2.5:3b")
+                    if fallback and fallback != target:
+                        for name in names:
+                            if fallback in name or name in fallback:
+                                logger.info(f"Target model '{target}' not found, but fallback '{fallback}' is installed.")
+                                return True
+                    logger.warning(f"Neither model '{target}' nor fallback '{fallback}' found in Ollama: {names}")
                     return False
         except Exception as e:
             logger.warning(f"Ollama model tags check failed: {e}")
@@ -428,3 +453,165 @@ class LLMService:
         except Exception as e:
             logger.error(f"Structured LLM generation error ({self.provider}/{self.model}) [{type(e).__name__}]: {e}")
             return {"data": None, "status": "error", "error_detail": str(e), "model": self.model}
+
+    def invoke_with_fallback(
+        self,
+        messages: List[Any],
+        tools: Optional[List[Any]] = None,
+        request_id: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """Execute LLM invocation with bounded failover: primary -> fallback (max 2 attempts).
+        Guarantees:
+        1. Never loops (primary -> fallback -> STOP).
+        2. Logs primary model, fallback model, failure reason, latency, request_id (no PHI).
+        3. Returns controlled status without crashing.
+        """
+        primary = self.primary_model
+        fallback = self.fallback_model
+        req_label = request_id or "unknown_req"
+
+        primary_err_str = ""
+        # ── Attempt 1: Primary Model ──
+        start_att1 = time.perf_counter()
+        try:
+            chat_primary = self.get_chat_model(model_name=primary)
+            if tools:
+                chat_primary = chat_primary.bind_tools(tools)
+            resp = chat_primary.invoke(messages)
+            lat1_ms = (time.perf_counter() - start_att1) * 1000.0
+
+            content = extract_clean_text(resp.content) if hasattr(resp, "content") else str(resp)
+            has_tools = hasattr(resp, "tool_calls") and bool(resp.tool_calls)
+
+            if content or has_tools:
+                logger.info(f"LLM Success (Attempt 1): model={primary} | req_id={req_label} | lat={lat1_ms:.2f}ms")
+                return {
+                    "response": resp,
+                    "content": content,
+                    "tool_calls": resp.tool_calls if has_tools else [],
+                    "model_used": primary,
+                    "fallback_used": False,
+                    "attempts": 1,
+                    "latency_ms": lat1_ms,
+                    "status": "success",
+                    "error_detail": None
+                }
+            else:
+                raise ValueError("Model returned empty response.")
+        except Exception as e1:
+            primary_err_str = str(e1)
+            lat1_ms = (time.perf_counter() - start_att1) * 1000.0
+            logger.warning(
+                f"Primary model '{primary}' failed: req_id={req_label} | lat={lat1_ms:.2f}ms | err={type(e1).__name__}: {e1}. "
+                f"Triggering bounded fallback to '{fallback}'..."
+            )
+
+        # ── Attempt 2: Fallback Model (Bounded to 1 retry max) ──
+        if not fallback or fallback == primary:
+            return {
+                "response": None,
+                "content": "",
+                "tool_calls": [],
+                "model_used": primary,
+                "fallback_used": False,
+                "attempts": 1,
+                "latency_ms": lat1_ms,
+                "status": "fallback_error",
+                "error_detail": primary_err_str
+            }
+
+        start_att2 = time.perf_counter()
+        try:
+            chat_fallback = self.get_chat_model(model_name=fallback)
+            if tools:
+                chat_fallback = chat_fallback.bind_tools(tools)
+            resp = chat_fallback.invoke(messages)
+            lat2_ms = (time.perf_counter() - start_att2) * 1000.0
+
+            content = extract_clean_text(resp.content) if hasattr(resp, "content") else str(resp)
+            has_tools = hasattr(resp, "tool_calls") and bool(resp.tool_calls)
+
+            if content or has_tools:
+                logger.info(f"Fallback model '{fallback}' succeeded: req_id={req_label} | lat={lat2_ms:.2f}ms")
+                return {
+                    "response": resp,
+                    "content": content,
+                    "tool_calls": resp.tool_calls if has_tools else [],
+                    "model_used": fallback,
+                    "fallback_used": True,
+                    "attempts": 2,
+                    "latency_ms": lat2_ms,
+                    "status": "success",
+                    "error_detail": None
+                }
+            else:
+                raise ValueError("Fallback model returned empty response.")
+        except Exception as e2:
+            lat2_ms = (time.perf_counter() - start_att2) * 1000.0
+            logger.error(
+                f"Fallback model '{fallback}' also failed: req_id={req_label} | lat={lat2_ms:.2f}ms | err={type(e2).__name__}: {e2}. "
+                "Both model attempts exhausted. Controlled safe fallback engaged."
+            )
+            return {
+                "response": None,
+                "content": "",
+                "tool_calls": [],
+                "model_used": fallback,
+                "fallback_used": True,
+                "attempts": 2,
+                "latency_ms": lat1_ms + lat2_ms,
+                "status": "fallback_error",
+                "error_detail": f"Primary ({primary}) failed: {primary_err_str} | Fallback ({fallback}) failed: {e2}"
+            }
+
+    def stream_with_fallback(
+        self,
+        messages: List[Any],
+        request_id: Optional[str] = None
+    ) -> Any:
+        """Stream response generator with bounded failover.
+        Yields dicts with 'token', 'model', 'fallback_used', and completion info.
+        """
+        primary = self.primary_model
+        fallback = self.fallback_model
+        req_label = request_id or "unknown_req"
+
+        primary_failed = False
+        try:
+            chat_primary = self.get_chat_model(model_name=primary)
+            stream_gen = chat_primary.stream(messages)
+            for chunk in stream_gen:
+                c_text = chunk.content if hasattr(chunk, "content") else str(chunk)
+                if c_text:
+                    yield {"token": c_text, "model": primary, "fallback_used": False}
+            return
+        except Exception as e1:
+            primary_failed = True
+            logger.warning(
+                f"Primary stream '{primary}' failed: req_id={req_label} | err={type(e1).__name__}: {e1}. "
+                f"Attempting fallback stream '{fallback}'..."
+            )
+
+        if primary_failed and fallback and fallback != primary:
+            try:
+                chat_fallback = self.get_chat_model(model_name=fallback)
+                for chunk in chat_fallback.stream(messages):
+                    c_text = chunk.content if hasattr(chunk, "content") else str(chunk)
+                    if c_text:
+                        yield {"token": c_text, "model": fallback, "fallback_used": True}
+                return
+            except Exception as e2:
+                logger.error(
+                    f"Fallback stream '{fallback}' also failed: req_id={req_label} | err={type(e2).__name__}: {e2}. "
+                    "All stream attempts exhausted."
+                )
+                yield {
+                    "token": (
+                        "I am currently experiencing service degradation. "
+                        "Please refer to the verified lab parameters recorded above and consult your doctor."
+                    ),
+                    "model": fallback,
+                    "fallback_used": True,
+                    "error": True
+                }
+

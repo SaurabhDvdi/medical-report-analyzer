@@ -10,8 +10,10 @@ from database import Base, engine, SessionLocal
 from models import User, Report, LabValue
 from core.security import hash_password, create_access_token
 from services.medical_classifier import MedicalClassifier, get_medical_classifier
-from services.ocr_service import OCRService
-import fitz  # PyMuPDF
+try:
+    import fitz  # PyMuPDF
+except (ImportError, Exception):
+    fitz = None
 from PIL import Image, ImageDraw
 
 client = TestClient(app)
@@ -65,12 +67,17 @@ def doctor_user(db_session):
 
 
 def create_pdf_bytes(text: str) -> bytes:
-    doc = fitz.open()
-    page = doc.new_page()
-    page.insert_text((50, 50), text, fontsize=11)
-    b = doc.tobytes()
-    doc.close()
-    return b
+    if fitz is not None:
+        try:
+            doc = fitz.open()
+            page = doc.new_page()
+            page.insert_text((50, 50), text, fontsize=11)
+            b = doc.tobytes()
+            doc.close()
+            return b
+        except Exception:
+            pass
+    return create_scanned_pdf_bytes(text)
 
 
 def create_scanned_pdf_bytes(text: str) -> bytes:
@@ -155,17 +162,18 @@ Result: Pending confirmation    Ref: 0.7 - 1.3 mg/dL"""
             "Description: Consulting Services Subtotal: $4,500.00\n"
             "Payment Terms: Net 30 Days via Wire Transfer."
         )
+        fname = f"invoice_sample_{uuid.uuid4().hex[:6]}.pdf"
         res = client.post(
             "/api/reports/upload",
             headers={"Authorization": f"Bearer {patient_user['token']}"},
-            files={"file": ("invoice_sample.pdf", io.BytesIO(pdf_bytes), "application/pdf")}
+            files={"file": (fname, io.BytesIO(pdf_bytes), "application/pdf")}
         )
         assert res.status_code == 422
         body = res.json()
         assert "This file does not appear to be a medical report" in body.get("detail", "")
 
         # Verify NO report was persisted in database
-        persisted = db_session.query(Report).filter(Report.file_name.contains("invoice_sample")).first()
+        persisted = db_session.query(Report).filter(Report.file_name == fname).first()
         assert persisted is None
 
     # 7. Digital Resume / CV Rejected with HTTP 422

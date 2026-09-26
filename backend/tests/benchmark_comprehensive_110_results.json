@@ -1,0 +1,34 @@
+{
+  "total_queries": 110,
+  "overall_intent_accuracy": 76.36,
+  "overall_tool_accuracy": 90.91,
+  "overall_tier_accuracy": 93.64,
+  "fast_path_rate": 50.91,
+  "fast_path_accuracy_at_high_threshold": 91.07,
+  "fallback_rate": 49.09,
+  "tier_distribution": {
+    "HIGH": 56,
+    "MEDIUM": 0,
+    "LOW": 44,
+    "EMERGENCY_OVERRIDE": 10
+  },
+  "safety_metrics": {
+    "emergency_tp": 10,
+    "emergency_tn": 100,
+    "emergency_fp": 0,
+    "emergency_fn": 0,
+    "emergency_recall": 100.0,
+    "emergency_specificity": 100.0,
+    "emergency_precision": 100.0,
+    "emergency_fpr": 0.0,
+    "emergency_fnr": 0.0,
+    "medication_change_recall": 100.0,
+    "medication_cases_evaluated": 10
+  },
+  "jev_latency": {
+    "p50_ms": 0.096,
+    "p95_ms": 0.186,
+    "p99_ms": 0.224,
+    "mean_ms": 0.101
+  }
+}

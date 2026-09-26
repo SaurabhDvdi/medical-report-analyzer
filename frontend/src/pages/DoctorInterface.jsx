@@ -382,7 +382,7 @@ export default function DoctorInterface() {
           )}
         </div>
 
-        <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
+        <AIAssistantModal role="doctor" patientId={selectedPatient} activePatientId={selectedPatient} patientName={patientData?.patient?.full_name} />
       </div>
     )
   }
@@ -463,7 +463,7 @@ export default function DoctorInterface() {
         </div>
       </div>
 
-      <AIAssistantModal role="doctor" patientId={selectedPatient} patientName={patientData?.patient?.full_name} />
+      <AIAssistantModal role="doctor" patientId={selectedPatient} activePatientId={selectedPatient} patientName={patientData?.patient?.full_name} />
     </div>
   )
 }

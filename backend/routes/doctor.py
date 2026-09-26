@@ -14,12 +14,15 @@ from models import (
     Medicine,
     LabValue,
     PatientProfile,
+    Notification,
 )
 from schemas import (
     DoctorProfileCreate,
     DoctorCategoryResponse,
     DoctorSpecialtyResponse,
     DoctorSpecialtyCreate,
+    NotificationResponse,
+    NotificationCountResponse,
 )
 from auth import get_current_user
 from core.security import require_doctor_access
@@ -224,6 +227,7 @@ async def list_doctor_access_requests(
     q = (
         db.query(PatientDoctorAccess, User)
         .join(User, PatientDoctorAccess.patient_id == User.id)
+        .options(joinedload(User.patient_profile))
         .filter(PatientDoctorAccess.doctor_id == current_user["id"])
     )
     if status:
@@ -236,12 +240,15 @@ async def list_doctor_access_requests(
             "doctor_id": r.doctor_id,
             "status": r.status,
             "patient_name": pu.full_name,
+            "patient_age": pu.patient_profile.age if pu.patient_profile else None,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
         }
         for r, pu in rows
     ]
 
 
 @router.post("/api/doctor/patient-access-requests/{request_id}/accept", response_model=dict)
+@router.post("/api/doctor/access-requests/{request_id}/accept", response_model=dict)
 async def accept_patient_access_request(
     request_id: int,
     current_user: dict = Depends(get_current_user),
@@ -249,27 +256,39 @@ async def accept_patient_access_request(
 ):
     if current_user["role"] != "doctor":
         raise HTTPException(status_code=403, detail="Doctors only")
-    row = (
-        db.query(PatientDoctorAccess)
-        .filter(
-            PatientDoctorAccess.id == request_id,
-            PatientDoctorAccess.doctor_id == current_user["id"],
-        )
-        .first()
-    )
+    row = db.query(PatientDoctorAccess).filter(PatientDoctorAccess.id == request_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Request not found")
+    if row.doctor_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to act on this access request")
     if row.status != "pending":
         raise HTTPException(status_code=400, detail="Request is not pending")
     row.status = "approved"
     row.granted_at = datetime.now(UTC)
     row.revoked_at = None
     row.updated_at = datetime.now(UTC)
+
+    # Resolve notification transactionally
+    notifs = (
+        db.query(Notification)
+        .filter(
+            Notification.access_request_id == row.id,
+            Notification.recipient_doctor_id == current_user["id"],
+        )
+        .all()
+    )
+    for n in notifs:
+        n.is_read = True
+        n.resolved_at = datetime.now(UTC)
+        db.add(n)
+
     db.commit()
+    db.refresh(row)
     return {"id": row.id, "status": row.status}
 
 
 @router.post("/api/doctor/patient-access-requests/{request_id}/reject", response_model=dict)
+@router.post("/api/doctor/access-requests/{request_id}/reject", response_model=dict)
 async def reject_patient_access_request(
     request_id: int,
     current_user: dict = Depends(get_current_user),
@@ -277,22 +296,121 @@ async def reject_patient_access_request(
 ):
     if current_user["role"] != "doctor":
         raise HTTPException(status_code=403, detail="Doctors only")
-    row = (
-        db.query(PatientDoctorAccess)
-        .filter(
-            PatientDoctorAccess.id == request_id,
-            PatientDoctorAccess.doctor_id == current_user["id"],
-        )
-        .first()
-    )
+    row = db.query(PatientDoctorAccess).filter(PatientDoctorAccess.id == request_id).first()
     if not row:
         raise HTTPException(status_code=404, detail="Request not found")
+    if row.doctor_id != current_user["id"]:
+        raise HTTPException(status_code=403, detail="Not authorized to act on this access request")
     if row.status != "pending":
         raise HTTPException(status_code=400, detail="Request is not pending")
     row.status = "rejected"
     row.updated_at = datetime.now(UTC)
+
+    # Resolve notification transactionally
+    notifs = (
+        db.query(Notification)
+        .filter(
+            Notification.access_request_id == row.id,
+            Notification.recipient_doctor_id == current_user["id"],
+        )
+        .all()
+    )
+    for n in notifs:
+        n.is_read = True
+        n.resolved_at = datetime.now(UTC)
+        db.add(n)
+
     db.commit()
+    db.refresh(row)
     return {"id": row.id, "status": row.status}
+
+
+@router.get("/api/doctor/notifications", response_model=list)
+@router.get("/api/notifications", response_model=list)
+async def list_doctor_notifications(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    doctor_id = current_user["id"]
+    notifications = (
+        db.query(Notification)
+        .filter(Notification.recipient_doctor_id == doctor_id)
+        .order_by(Notification.created_at.desc())
+        .all()
+    )
+    result = []
+    for n in notifications:
+        patient = db.query(User).options(joinedload(User.patient_profile)).filter(User.id == n.patient_id).first()
+        patient_name = patient.full_name if patient else "Unknown Patient"
+        patient_age = patient.patient_profile.age if (patient and patient.patient_profile) else None
+        
+        access_status = "pending"
+        if n.access_request:
+            access_status = n.access_request.status
+        
+        result.append({
+            "id": n.id,
+            "recipient_doctor_id": n.recipient_doctor_id,
+            "patient_id": n.patient_id,
+            "access_request_id": n.access_request_id,
+            "notification_type": n.notification_type,
+            "title": n.title,
+            "message": n.message or "Requested access to their medical profile and reports.",
+            "is_read": n.is_read,
+            "created_at": n.created_at.isoformat() if n.created_at else None,
+            "resolved_at": n.resolved_at.isoformat() if n.resolved_at else None,
+            "patient_name": patient_name,
+            "patient_age": patient_age,
+            "status": access_status,
+        })
+    return result
+
+
+@router.get("/api/doctor/notifications/unread-count", response_model=dict)
+@router.get("/api/notifications/unread-count", response_model=dict)
+async def get_doctor_unread_notification_count(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    doctor_id = current_user["id"]
+    pending_count = (
+        db.query(PatientDoctorAccess)
+        .filter(
+            PatientDoctorAccess.doctor_id == doctor_id,
+            PatientDoctorAccess.status == "pending",
+        )
+        .count()
+    )
+    unread_notifs = (
+        db.query(Notification)
+        .filter(
+            Notification.recipient_doctor_id == doctor_id,
+            Notification.is_read == False,
+        )
+        .count()
+    )
+    return {"count": pending_count, "unread_count": unread_notifs}
+
+
+@router.post("/api/doctor/notifications/mark-read", response_model=dict)
+@router.post("/api/notifications/mark-read", response_model=dict)
+async def mark_doctor_notifications_read(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if current_user["role"] != "doctor":
+        raise HTTPException(status_code=403, detail="Doctors only")
+    doctor_id = current_user["id"]
+    db.query(Notification).filter(
+        Notification.recipient_doctor_id == doctor_id,
+        Notification.is_read == False,
+    ).update({"is_read": True})
+    db.commit()
+    return {"message": "Notifications marked as read"}
 
 
 @router.get("/api/doctor/patient/{patient_id}")

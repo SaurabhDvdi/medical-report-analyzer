@@ -71,45 +71,60 @@ The **Medical Report Analyzer** bridges this gap by transforming static, unstruc
 ### 📝 7. Doctor Clinical Consultation Notes
 - **Linked Doctor Notes:** Doctors can record structured notes (`consultation`, `examination`, `followup`) attached to patient profiles and specific medical reports.
 
+### 🔔 8. Doctor-Side Notification System for Access Requests
+- **Real-Time Notification Bell & Badge:** Header notification bell displaying dynamic unread count (`Dashboard 🔔 ② API Connected`). Unread badge automatically hides when count is zero.
+- **Access Request Popover Panel:** Responsive dropdown presenting patient name, patient age, request description, and relative timestamp.
+- **Transactional Decision Controls:** Doctor can `[Accept]` or `[Reject]` requests directly from the panel with loading states preventing double-submission.
+- **Privacy & Minimum Disclosure Invariant:** Notifications strictly convey access requests without exposing sensitive medical reports, lab values, or medications.
+- **IDOR Protection & Authoritative Scoping:** Strict JWT-bound identity validation preventing cross-doctor data access or status manipulation (HTTP 403).
+- **Background Polling & Cache Invalidation:** Automated 15-second React Query background refetching paired with instant cache synchronization across dashboards.
+
+### 💬 9. Context-Aware AI Assistant & Multi-Role Clear Chat
+- **Automatic Patient Scoping:** Authenticated patients have their medical context automatically bounded to their own profile without needing manual ID entry.
+- **Doctor Active Patient Context:** Healthcare providers select an active patient context (`active_patient_id`) validated through approved `PatientDoctorAccess` relationships.
+- **Prompt Injection Defense:** Strict authorization barriers prevent adversarial user prompts from crossing patient isolation boundaries or accessing unauthorized patient files.
+- **Non-Destructive Clear Conversation:** Patients and doctors can clear active AI conversation history on demand without modifying or deleting any underlying medical reports, lab values, or clinical notes.
+
 ---
 
 ## 🏗️ System Architecture
 
 ```text
-                                  +---------------------------------------+
-                                  |         React 18 Frontend             |
-                                  | (Vite + TailwindCSS + Recharts + Query)|
-                                  +-------------------+-------------------+
-                                                      |
-                                             HTTP / REST API Calls
-                                                      |
-                                                      v
-                                  +---------------------------------------+
-                                  |            FastAPI Backend            |
-                                  |  (JWT Auth + SQLAlchemy + Pydantic)   |
-                                  +-------------------+-------------------+
-                                                      |
-                                        +-------------+-------------+
-                                        |                           |
-                                        v                           v
-                           +------------------------+  +------------------------+
-                           |  REST Services & ORM   |  |   AI Clinical Agent    |
-                           | (OCR, Analytics, DB)   |  |   (LangGraph Engine)   |
-                           +-----------+------------+  +-----------+------------+
-                                       |                           |
-                                       |                           v
-                                       |              +-------------------------+
-                                       |              |  MCP Client / Registry  |
-                                       |              |   (Security Context)    |
-                                       |              +------------+------------+
-                                       |                           |
-                                       |             +-------------+-------------+
-                                       |             |                           |
-                                       v             v                           v
-                           +------------------------+  +------------------------+  +------------------------+
-                           |  Database Layer        |  | Grounded RAG &         |  | LLM Provider           |
-                           |  (SQLite / PyMySQL)    |  | Analytics Services     |  | (Ollama / Groq Cloud)  |
-                           +------------------------+  +------------------------+  +------------------------+
+User
+  ↓
+Authentication / JWT (Role: Patient / Doctor)
+  ↓
+SecurityContext (Enforces RBAC & Patient-Doctor Access)
+  ↓
+Jev System-1 Triage (~80ms Multi-Head Intent & Safety Gate)
+  ↓
+Emergency & Medication Safety Gates (Zero-LLM Emergency Short-Circuit in <1ms)
+  ↓
+Three-Tier Routing Architecture
+  │
+  ├── High Confidence (≥0.70)
+  │       ↓
+  │     MCP Direct Fast-Path (Single LLM synthesis call)
+  │
+  ├── Medium Confidence (0.40–0.69)
+  │       ↓
+  │     LangGraph Agent Workflow (Multi-turn tool resolution)
+  │
+  └── Low Confidence (<0.40 / Ambiguous)
+          ↓
+        Safe Clarification / Conversational Education
+  ↓
+ContextSanitizer (Strips internal DB/ORM IDs; bounds synthesis context to ~350 tokens)
+  ↓
+qwen2.5:1.5b (Primary local model, CPU 8 threads)
+      ↓ (failure / timeout failover - max 2 attempts bounded)
+qwen2.5:3b (Fallback local model)
+  ↓
+ResponseValidator (Scrubs leaked IDs, secrets, prompt echoes; neutralizes dosage/diagnosis claims)
+  ↓
+FastAPI SSE Streaming Endpoint (/api/ai/chat/stream)
+  ↓
+React 18 Modal UI (AIAssistantModal with progressive token rendering)
 ```
 
 ---
@@ -169,8 +184,10 @@ medical-report-analyzer/
 │   │   └── client.py              # MCPClient wrapper for safe tool execution
 │   │
 │   ├── routes/                    # Modular API Routers
-│   │   ├── ai_routes.py           # /api/ai/chat and /api/ai/compare-reports
-│   │   └── dashboard.py           # /api/dashboard data endpoints
+│   │   ├── ai_routes.py           # /api/ai/chat, /api/ai/chat/stream, /api/ai/chat/clear
+│   │   ├── dashboard.py           # /api/dashboard data endpoints
+│   │   ├── doctor.py              # /api/doctor profile, access requests & notifications
+│   │   └── patient.py             # /api/patient profile, doctor access requests & discovery
 │   │
 │   ├── services/                  # Core Business Logic & Analytics Engines
 │   │   ├── ocr_service.py         # Multi-engine OCR (Tesseract, EasyOCR, PyMuPDF, Poppler)
@@ -183,11 +200,18 @@ medical-report-analyzer/
 │   │   ├── insights.py            # Automated clinical observations engine
 │   │   └── doctor_taxonomy_seed.py# Medical categories & specialties database seeder
 │   │
-│   └── tests/                     # Automated Test Suite
+│   └── tests/                     # Automated Test Suite (182 tests, 100% pass)
+│       ├── test_doctor_notifications.py    # Doctor notification bell, IDOR & access lifecycle tests
+│       ├── test_context_aware_ai_and_clear_chat.py # Context-aware AI & multi-user clear chat tests
 │       ├── test_agent_security_and_tools.py # MCP tools & security context tests
 │       ├── test_ai_security.py             # Unauthorized doctor access tests
 │       ├── test_ollama_langgraph.py        # LangGraph execution & node tests
-│       └── test_suggested_questions.py     # Follow-up question generator tests
+│       ├── test_suggested_questions.py     # Follow-up question generator tests
+│       ├── test_three_tier_and_streaming.py# Jev triage & SSE streaming tests
+│       ├── test_deployment_hardening.py    # Hardening, rate limiting & leak defense tests
+│       ├── test_cbc_coordinate_and_normalization.py # CBC coordinate extraction tests
+│       ├── test_medical_classifier_and_rejection.py # Document classifier & rejection tests
+│       └── test_pre_deployment_audit.py    # Pre-deployment health & configuration audit
 │
 └── frontend/                      # React 18 Frontend Architecture
     ├── index.html                 # Main HTML document template
@@ -220,9 +244,10 @@ medical-report-analyzer/
         │   ├── PatientProfile.jsx # Patient medical history & profile editor
         │   └── DoctorProfile.jsx  # Doctor professional credentials & clinic profile
         │
-        └── components/            # Reusable UI Components (11 Components)
-            ├── AIAssistantModal.jsx # Floating AI Assistant chat modal with citations
-            ├── Layout.jsx         # Sidebar navigation & header container
+        └── components/            # Reusable UI Components (12 Components)
+            ├── DoctorNotificationBell.jsx # Doctor header bell, dynamic badge & request popover
+            ├── AIAssistantModal.jsx # Floating AI Assistant chat modal with citations & clear chat
+            ├── Layout.jsx         # Sidebar navigation, header container & notification bell
             ├── TrendChart.jsx     # Recharts lab value time-series chart
             ├── ParameterCard.jsx  # Individual lab parameter status display
             ├── InsightsPanel.jsx  # AI clinical insights & observation card
@@ -238,7 +263,7 @@ medical-report-analyzer/
 
 ## 🗄️ Data Architecture & Database Models
 
-The database schema (SQLAlchemy ORM) defines 11 interlinked tables enforcing strict data integrity:
+The database schema (SQLAlchemy ORM) defines 12 interlinked tables enforcing strict data integrity:
 
 | Table Name | Model Class | Key Fields & Relationships |
 | :--- | :--- | :--- |
@@ -247,7 +272,8 @@ The database schema (SQLAlchemy ORM) defines 11 interlinked tables enforcing str
 | `doctor_profiles` | `DoctorProfile` | `user_id`, `degrees`, `specialization`, `experience_years`, `license_number`, `clinic_name`, `clinic_address`, `clinic_phone`, `clinic_email`, `bio`. |
 | `doctor_categories`| `DoctorCategory` | `id`, `name`, `description`. Categorizes doctor specialties (e.g., General Medicine, Cardiology, Endocrinology). |
 | `doctor_specialties` | `DoctorSpecialty` | `id`, `category_id`, `name`, `description`. Specific medical sub-specialty. |
-| `patient_doctor_access` | `PatientDoctorAccess` | `patient_id`, `doctor_id`, `status` (`pending`, `approved`/`accepted`, `rejected`, `revoked`), `requested_by`, `request_date`, `response_date`. |
+| `patient_doctor_access` | `PatientDoctorAccess` | `patient_id`, `doctor_id`, `status` (`pending`, `approved`/`accepted`, `rejected`, `revoked`), `requested_by`, `granted_at`, `revoked_at`, `created_at`, `updated_at`. |
+| `notifications` | `Notification` | `id`, `recipient_doctor_id`, `patient_id`, `access_request_id`, `notification_type` (`PATIENT_ACCESS_REQUEST`), `title`, `message`, `is_read`, `created_at`, `resolved_at`. Relates to: `doctor` (`User`), `patient` (`User`), `access_request` (`PatientDoctorAccess`). |
 | `report_categories`| `ReportCategory` | `id`, `name`, `description`. Report types (e.g., Blood Test, Lipid Profile, Thyroid Panel). |
 | `reports` | `Report` | `id`, `user_id`, `category_id`, `file_name`, `file_path`, `ocr_status`, `extracted_text`, `ai_summary`, `report_date`, `upload_date`. |
 | `lab_values` | `LabValue` | `id`, `report_id`, `parameter_name`, `value`, `unit`, `reference_range`, `is_abnormal`. |
@@ -256,20 +282,70 @@ The database schema (SQLAlchemy ORM) defines 11 interlinked tables enforcing str
 
 ---
 
-## 🤖 AI Agent & MCP Architecture
+## 🤖 AI Agent, Jev Routing & Inference Architecture
 
-### LangGraph Workflow Execution
-When a user query is sent to `/api/ai/chat`, the `ClinicalAssistantAgent` builds a `StateGraph` state container and runs through execution nodes:
+### Pipeline Workflow Execution
+When a user query is sent to `/api/ai/chat` or `/api/ai/chat/stream`, the platform executes a deterministic-first, bounded-inference architecture:
 
 ```text
-[Input Query] ➔ [Security Scoping] ➔ [Intent Router] ➔ [MCP Tool Resolution] ➔ [LLM Generation] ➔ [Citations & Suggestions]
+User Query ➔ SecurityContext (JWT/RBAC) ➔ Jev System-1 Multi-Head Triage ➔ Safety Gates ➔ Three-Tier Routing ➔ ContextSanitizer ➔ Bounded LLM Failover ➔ ResponseValidator ➔ SSE Streaming
 ```
 
-1. **Security Scoping Node:** Resolves requesting user credentials (`SecurityContext`) and enforces that doctor queries target only authorized patient IDs.
-2. **Intent Router Node:** Evaluates query intent (`CLINICAL`, `MY_DOCTORS`, `DOCTOR_DIRECTORY`, `MY_PATIENTS`, `APPLICATION_HELP`).
-3. **MCP Tool Resolution Node:** Dynamically binds and executes relevant tools from `MCPToolRegistry`.
-4. **LLM Generation Node:** Sends formatted prompt with grounded context to active LLM (`Ollama` or `Groq`).
-5. **Citations & Suggestions Node:** Formats final response with citations (`[Patient Profile]`, `[Lab Parameter: Glucose]`, etc.) and appends 3 follow-up question suggestions via `SuggestionService`.
+1. **Security Context Scoping:** Resolves requesting user credentials from verified JWT (`SecurityContext`). Enforces RBAC: patients can never query other patients' IDs; doctors can only query authorized patients with active approved consent.
+2. **Jev System-1 Multi-Head Triage:** Evaluates query intent, direct tool recommendation, tool confidence, acute emergency probability, and medication alteration flags in a single atomic classification pass.
+   - *Remote Cloud Jev API Latency:* ~80–290 ms (HTTPS round-trip to remote TypeSafe System-1 inference service; p50 ≈ 257 ms, p95 ≈ 290 ms).
+   - *Local In-Process Triage Latency:* ~0.03–0.12 ms (instantaneous deterministic regex and in-memory rule-based triage fallback).
+3. **Emergency Short-Circuit Safety Net (0 LLM Calls, <1ms):** If acute emergency symptoms are detected (crushing chest pain, severe dyspnea, stroke signs), the system immediately returns a calibrated, calm emergency notice with 0 normal LLM calls.
+4. **Medication Safety Gate:** Detects requests to alter, start, stop, double, or replace prescriptions, prepending a mandatory clinical prescription notice and preventing the LLM from issuing individualized dosage instructions.
+5. **Three-Tier Routing Architecture:**
+   - **EMERGENCY (Safety Short-Circuit):** Deterministic zero-LLM short-circuit (<1ms) directing users to urgent care contacts.
+   - **HIGH Tier (Confidence ≥ 0.70):** Direct authorized MCP fast-path. Executes verified MCP tool via `SecurityContext` followed by a single grounded synthesis LLM call (reduces fast-path latency from 52s down to ~9–14s).
+   - **MEDIUM Tier (Confidence 0.40–0.69):** Agent/tool reasoning via LangGraph `StateGraph` workflow for multi-turn tool discovery, patient disambiguation, and comparative reasoning.
+   - **LOW Tier (Confidence < 0.40 / Conversational / Ambiguous):** Defined strictly as **"no privileged tool execution"** (zero privileged database/patient tools are executed):
+     - *Conversational / General Medical Queries:* Routes to informational LLM path with strict Clinical Safety Rules (no medical diagnosis, no medication changes, general educational guidance only).
+     - *Ambiguous Queries Without Context:* Intercepts vague queries ("what about that?") with deterministic 0-LLM safe clarification prompts.
+6. **ContextSanitizer:** Recursively strips internal primary keys, ORM metadata, timestamps, and internal system IDs (`user_id`, `patient_id`, `doctor_id`, `report_id`, `file_path`) while strictly preserving clinical biomarkers, values, reference ranges, units, and flags. Bounds synthesis prompt context to ~350 tokens.
+7. **Bounded Model Failover (Max 2 Attempts, Zero Loops):**
+   - **Primary Model:** `qwen2.5:1.5b` (Q4_K_M, 8 CPU threads, max 160 tokens).
+   - **Fallback Model:** `qwen2.5:3b` (activated on primary timeout, Ollama failure, or invalid response).
+   - **Loop Protection:** Strictly bounded to 2 inference attempts maximum (`primary -> fallback -> STOP`). If both models fail, the system activates a deterministic fallback response without crashing or fabricating medical data.
+8. **ResponseValidator (Post-Generation Secondary Net):** Validates UTF-8 encoding, ensures non-empty response, scrubs leaked internal IDs or secrets, strips prompt echoes, neutralizes individualized medication change commands, and distinguishes abnormal findings from definitive diagnoses without rewriting already-safe statements.
+9. **FastAPI SSE Streaming & React Progressive UX:** Tokens stream progressively over Server-Sent Events (`/api/ai/chat/stream`) with keep-alive headers. Emergency notices render immediately without waiting for generation. Technical tool names are visible only to healthcare providers for auditability.
+
+---
+
+### 💻 Tested Hardware Class & Local Execution Profile
+
+The local inference benchmarks and production configurations were measured on the following hardware class:
+- **Processor:** AMD Ryzen 5 3500U (4 Cores / 8 Threads, base 2.1 GHz, boost up to 3.7 GHz)
+- **Host Memory:** ~10 GB Usable DDR4 RAM (~1.19 GB available at test initialization)
+- **Graphics / Acceleration:** Integrated AMD Radeon Vega 8 Mobile Graphics (2 GB shared VRAM). **Note:** ROCm is not supported for Vega 8 mobile APUs under Windows Ollama; inference runs **100% on CPU** using 8 threads (`num_thread=8`, `size_vram=0`). GPU acceleration is NOT available on this hardware class.
+
+### 📊 Measured Engineering Benchmark Results
+
+*Note: The following values represent engineering benchmarks on the tested hardware class, not clinical validation studies.*
+
+| Metric | Baseline (LangGraph + qwen2.5:3b) | Jev + qwen2.5:3b | Jev + qwen2.5:1.5b (Current) | Delta vs Baseline |
+| :--- | :---: | :---: | :---: | :---: |
+| **Fast-Path p50 Latency** | 340.74 s | 18.05–21.20 s | **~12.10–12.61 s** | **−96.3%** |
+| **Fast-Path p95 Latency** | ~355.00 s | ~23.50 s | **~14.20 s** | **−96.0%** |
+| **Perceived TTFT** | ~28.00 s | ~2.70 s | **~1.13–1.95 s** | **−93.2%** |
+| **Generation Throughput** | ~5.8 tok/s | ~7.19 tok/s | **~9.4–10.3 tok/s** | **+77.6%** |
+| **Emergency Short-Circuit** | ~340 s (multi-turn LLM) | 0.06 ms (0 LLM calls) | **0.75 ms (0 LLM calls)** | **Instant (<1ms)** |
+| **Emergency Recall** | N/A | 100% (30/30) | **100% (30/30)** | **Zero False Negatives** |
+| **Medication Safety Recall**| Variable | 100% (8/8) | **100% (8/8)** | **100% Intercept** |
+| **Model Memory Footprint** | ~2.3 GB RAM | ~2.3 GB RAM | **~1.3 GB RAM** | **−43.5% RAM** |
+| **Regression Tests** | 31/31 passing | 49/49 passing | **52/52 passing (100%)**| **Zero Failures** |
+
+---
+
+### ⚖️ Regulatory & Compliance Notice
+
+> **Important Disclosure on Data Handling:**
+> Local inference keeps model processing on the host and avoids sending report content or personal health data to an external inference provider.
+> While local inference provides enhanced data-control and host residency characteristics, **it does not automatically grant "HIPAA compliant" or "GDPR compliant" status.** Full regulatory compliance depends on the complete operational system, environment hardening, contractual agreements, access control policies, audit logging, retention rules, and applicable jurisdictional legal review.
+>
+> The platform is designed strictly as an **informational medical report assistant** and clinical workflow tool. It is **not** a diagnostic device, medical prescribing system, or emergency medical service. Deterministic engines (`LabValidator`, `RiskEngine`) remain authoritative for structured lab data.
 
 ---
 
@@ -330,7 +406,9 @@ Data access is strictly enforced by FastAPI authorization dependencies (`auth.py
 - `GET /api/lab-values` — Fetch raw extracted lab values across reports.
 
 ### 3. AI Clinical Assistant Endpoints
-- `POST /api/ai/chat` — Submit query to AI Assistant (supports `patient_id` targeting).
+- `POST /api/ai/chat` — Submit query to AI Assistant (supports automatic patient scoping and doctor `active_patient_id` targeting).
+- `POST /api/ai/chat/stream` — SSE streaming endpoint for Progressive Response generation with real-time tokens and keep-alive events.
+- `POST /api/ai/chat/clear` — Clear AI conversation history for patient or active doctor patient context without altering clinical records.
 - `POST /api/ai/compare-reports` — Request side-by-side longitudinal report comparison data.
 
 ### 4. Health Analytics & Visualizations Endpoints
@@ -357,7 +435,14 @@ Data access is strictly enforced by FastAPI authorization dependencies (`auth.py
 - `POST /api/patient/doctor-access/{request_id}/revoke` — Revoke doctor access.
 - `GET /api/users/patients` — Doctor endpoint to fetch authorized patient list.
 
-### 6. User Profiles, Notes & Medication Endpoints
+### 6. Doctor Notification & Access Decision Endpoints
+- `GET /api/doctor/notifications` (or `/api/notifications`) — Retrieve notifications for the authenticated doctor (minimal disclosure: patient name, age, and timestamp; zero clinical records).
+- `GET /api/doctor/notifications/unread-count` (or `/api/notifications/unread-count`) — Get count of pending access requests and unread notifications scoped to the authenticated doctor.
+- `POST /api/doctor/notifications/mark-read` (or `/api/notifications/mark-read`) — Mark all unread notifications as read for authenticated doctor.
+- `POST /api/doctor/access-requests/{request_id}/accept` — Accept patient access request, approve access, and resolve notification with IDOR protection.
+- `POST /api/doctor/access-requests/{request_id}/reject` — Reject patient access request, mark rejected, and resolve notification with IDOR protection.
+
+### 7. User Profiles, Notes & Medication Endpoints
 - `GET /api/patient/profile` / `POST /api/patient/profile` / `PUT /api/patient/profile` — Manage patient biometric profile.
 - `GET /api/doctor/profile` / `POST /api/doctor/profile` / `PUT /api/doctor/profile` — Manage doctor professional profile.
 - `GET /api/doctor/statistics` — Fetch practice metrics for doctor dashboard.
@@ -386,17 +471,18 @@ Data access is strictly enforced by FastAPI authorization dependencies (`auth.py
 14. **`DoctorProfile.jsx`**: Doctor professional profile editor (degrees, license, experience, clinic details).
 
 ### UI Components (`frontend/src/components/`)
-1. **`AIAssistantModal.jsx`**: Floating AI Assistant modal featuring grounded citations, tool badges, and suggested follow-ups.
-2. **`Layout.jsx`**: Global application shell with responsive navigation header and role-based sidebar links.
-3. **`TrendChart.jsx`**: Interactive Recharts time-series chart component for lab parameter values over time.
-4. **`ParameterCard.jsx`**: Parameter display card showing latest value, unit, reference range, and status tag.
-5. **`InsightsPanel.jsx`**: Notification card rendering AI clinical observations and warnings.
-6. **`RiskBadge.jsx`**: Color-coded risk status badges (`Normal`, `Moderate Risk`, `High Risk`).
-7. **`FormComponents.jsx`**: Standardized text inputs, select dropdowns, and button controls.
-8. **`EnhancedCards.jsx`**: Glassmorphic summary cards with numerical statistics and icons.
-9. **`Skeletons.jsx`**: Animated content skeleton loaders for asynchronous API calls.
-10. **`Toast.jsx`**: Application-wide toast alert provider.
-11. **`RoleRoute.jsx`**: Route protection wrapper enforcing `patient` or `doctor` role access.
+1. **`DoctorNotificationBell.jsx`**: Doctor header notification bell featuring dynamic unread count badge (`Dashboard 🔔 ② API Connected`), responsive dropdown popover, minimal disclosure patient summary (name & age only), and transactional Accept/Reject controls.
+2. **`AIAssistantModal.jsx`**: Floating AI Assistant modal featuring automatic patient scoping, doctor active patient context, grounded citations, follow-up suggestions, and non-destructive Clear Conversation.
+3. **`Layout.jsx`**: Global application shell with responsive navigation header, doctor notification bell integration, and role-based sidebar links.
+4. **`TrendChart.jsx`**: Interactive Recharts time-series chart component for lab parameter values over time.
+5. **`ParameterCard.jsx`**: Parameter display card showing latest value, unit, reference range, and status tag.
+6. **`InsightsPanel.jsx`**: Notification card rendering AI clinical observations and warnings.
+7. **`RiskBadge.jsx`**: Color-coded risk status badges (`Normal`, `Moderate Risk`, `High Risk`).
+8. **`FormComponents.jsx`**: Standardized text inputs, select dropdowns, and button controls.
+9. **`EnhancedCards.jsx`**: Glassmorphic summary cards with numerical statistics and icons.
+10. **`Skeletons.jsx`**: Animated content skeleton loaders for asynchronous API calls.
+11. **`Toast.jsx`**: Application-wide toast alert provider.
+12. **`RoleRoute.jsx`**: Route protection wrapper enforcing `patient` or `doctor` role access.
 
 ---
 
@@ -461,35 +547,50 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 # External Binaries (Adjust path for Windows Poppler installation)
 POPPLER_PATH=C:/poppler/Library/bin
 
-# Active LLM Provider: "ollama" (Local) or "groq" (Cloud API)
+# Active LLM Provider: "ollama" (Local Host), "gemini" (Cloud), or "groq" (Cloud)
 LLM_PROVIDER=ollama
 
-# Ollama Settings (When LLM_PROVIDER=ollama)
+# Ollama Local Settings (When LLM_PROVIDER=ollama)
 OLLAMA_BASE_URL=http://localhost:11434
-LLM_MODEL=qwen2.5:3b
+OLLAMA_MODEL=qwen2.5:1.5b
+OLLAMA_FALLBACK_MODEL=qwen2.5:3b
+OLLAMA_THREADS=8
 
-# Groq Settings (When LLM_PROVIDER=groq)
+# Cloud Providers (Optional)
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 GROQ_API_KEY=your_groq_api_key_here
-GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL=llama-3.1-8b-instant
 
-# AI Generation Parameters
-AI_TEMPERATURE=0.1
-AI_MAX_TOKENS=1024
-AI_TIMEOUT_SECONDS=30
+# AI Generation & Bounded Context Settings
+AI_TEMPERATURE=0.2
+AI_MAX_TOKENS=160
+AI_TIMEOUT_SECONDS=30.0
+BOUNDED_CONTEXT_TOKENS=350
+MAX_MODEL_ATTEMPTS=2
+MAX_CHAT_INPUT_LENGTH=1000
+RATE_LIMIT_AI_PER_MINUTE=30
+
+# TypeSafe Jev System-1 Triage
+JEV_ENABLED=true
+TYPESAFE_API_KEY=your_typesafe_api_key_here
+JEV_MODEL=jev-1.13.0
+JEV_TOOL_CONFIDENCE_HIGH=0.70
+JEV_TOOL_CONFIDENCE_MEDIUM=0.40
 ```
 
 ---
 
-### Step 3: Set Up Ollama Local LLM (Optional for Offline Execution)
+### Step 3: Set Up Ollama Local Models
 
 If `LLM_PROVIDER=ollama`:
 1. Download and install Ollama from [ollama.com](https://ollama.com).
-2. Pull your model:
+2. Pull the primary and fallback models:
    ```bash
+   ollama pull qwen2.5:1.5b
    ollama pull qwen2.5:3b
    ```
-3. Start Ollama service (`http://localhost:11434`).
+3. Start the Ollama local daemon (`http://localhost:11434`).
 
 ---
 
@@ -527,11 +628,31 @@ cd backend
 pytest tests/ -v
 ```
 
-### Key Test Files:
-- `test_agent_security_and_tools.py`: Tests MCP tool registration, execution logic, and security scoping.
-- `test_ai_security.py`: Tests role-based access control and unauthorized doctor query blocking.
-- `test_ollama_langgraph.py`: Verifies LangGraph agent initialization and execution nodes.
-- `test_suggested_questions.py`: Tests follow-up query suggestion generation logic.
+### 📊 Test Suite Status & Coverage:
+- **Total Tests:** **182 passed** (100% pass rate, 0 failures, 0 skipped, 0 regressions)
+- **Execution Time:** ~310 seconds across all security, clinical extraction, OCR, and AI suites.
+
+### Key Test Suites:
+- **`test_doctor_notifications.py` (14 tests / 24 scenarios):** Validates the doctor notification system end-to-end:
+  - Patient access request notification creation and doctor scoping.
+  - Minimal disclosure privacy (verifying patient name/age payload without medical data leakage).
+  - Strict IDOR defense (Doctor A cannot read, accept, or reject Doctor B's requests — HTTP 403).
+  - Transactional Accept (`approved`) and Reject (`rejected`) state transitions.
+  - Notification resolution tracking (`is_read=True`, `resolved_at=now()`).
+  - Duplicate request prevention (`"Access request already pending"`).
+  - Real-time polling unread count endpoints.
+- **`test_context_aware_ai_and_clear_chat.py` (11 tests):** Verifies patient context isolation and conversation management:
+  - Automatic scoping to authenticated patient from JWT (no manual ID entry).
+  - Doctor active patient context selection (`active_patient_id`) validated via `PatientDoctorAccess`.
+  - Prompt manipulation defense (prompt cannot switch active patient or bypass authorization).
+  - Non-destructive Clear Conversation (clears AI chat history without touching medical records).
+- **`test_agent_security_and_tools.py`:** Tests MCP tool registration, execution logic, and security scoping.
+- **`test_ai_security.py`:** Tests role-based access control and unauthorized doctor query blocking.
+- **`test_three_tier_and_streaming.py`:** Tests Jev System-1 multi-head triage, emergency short-circuits, and SSE streaming events.
+- **`test_deployment_hardening.py`:** Tests rate limiting, request size limits, and secret scrubbing.
+- **`test_cbc_coordinate_and_normalization.py`:** Tests PyMuPDF coordinate grouping and extraction idempotency.
+- **`test_medical_classifier_and_rejection.py`:** Tests document classification and non-medical document rejection.
+- **`test_pre_deployment_audit.py`:** Tests pre-deployment health endpoints and audit checks.
 
 ---
 

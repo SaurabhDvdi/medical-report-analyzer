@@ -32,4 +32,5 @@ mcp
 chromadb
 httpx
 psutil
+typesafe-sdk==0.7.1
 

@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 import psutil
 import pytesseract
@@ -8,6 +9,16 @@ import numpy as np
 import tempfile
 import threading
 from logging_config import get_logger
+
+if sys.platform == "win32" and hasattr(os, "add_dll_directory"):
+    for p in sys.path:
+        for candidate in ["sklearn/.libs", "numpy.libs", "pandas.libs"]:
+            target = os.path.join(p, *candidate.split("/"))
+            if os.path.isdir(target):
+                try:
+                    os.add_dll_directory(target)
+                except Exception:
+                    pass
 
 logger = get_logger(__name__)
 

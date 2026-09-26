@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from datetime import datetime, date
 
 class UserCreate(BaseModel):
@@ -159,9 +159,25 @@ class PatientDoctorAccessCreate(BaseModel):
 class AIChatRequest(BaseModel):
     message: str
     patient_id: Optional[int] = None
+    active_patient_id: Optional[int] = None
     old_report_id: Optional[int] = None
     new_report_id: Optional[int] = None
     parameter_name: Optional[str] = None
+    conversation_history: Optional[List[Dict[str, str]]] = None
+    conversation_id: Optional[str] = None
+
+
+class ClearChatRequest(BaseModel):
+    active_patient_id: Optional[int] = None
+    patient_id: Optional[int] = None
+    conversation_id: Optional[str] = None
+
+
+class ClearChatResponse(BaseModel):
+    status: str
+    message: str
+    target_patient_id: Optional[int] = None
+    cleared_at: str
 
 
 class AIChatResponse(BaseModel):
@@ -172,9 +188,34 @@ class AIChatResponse(BaseModel):
     suggested_questions: List[str] = []
     intent: Optional[str] = None
     context: Optional[dict] = None
+    is_emergency: Optional[bool] = False
+    emergency_notice: Optional[str] = None
+    jev_triage: Optional[dict] = None
+    metrics: Optional[dict] = None
 
 
 class ReportComparisonRequest(BaseModel):
     old_report_id: int
     new_report_id: int
+
+
+class NotificationResponse(BaseModel):
+    id: int
+    recipient_doctor_id: int
+    patient_id: int
+    access_request_id: Optional[int] = None
+    notification_type: str = "PATIENT_ACCESS_REQUEST"
+    title: str
+    message: Optional[str] = None
+    is_read: bool = False
+    created_at: Optional[str] = None
+    resolved_at: Optional[str] = None
+    patient_name: Optional[str] = None
+    patient_age: Optional[int] = None
+    status: Optional[str] = "pending"
+
+
+class NotificationCountResponse(BaseModel):
+    count: int
+    unread_count: Optional[int] = 0
 
