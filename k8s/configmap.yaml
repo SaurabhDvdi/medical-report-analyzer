@@ -1,0 +1,56 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: medical-analyzer-config
+  namespace: medical-analyzer
+  labels:
+    app.kubernetes.io/name: medical-report-analyzer
+    app.kubernetes.io/part-of: clinical-intelligence-platform
+data:
+  ENVIRONMENT: "production"
+  
+  # Relational Database Parameters (MySQL ClusterIP or Cloud RDS/CloudSQL)
+  DB_HOST: "mysql.medical-analyzer.svc.cluster.local"
+  DB_PORT: "3306"
+  DB_NAME: "medical_report_analysis"
+  DB_USER: "medical_user"
+  DB_POOL_SIZE: "10"
+  DB_MAX_OVERFLOW: "20"
+  DB_POOL_TIMEOUT: "30"
+  DB_POOL_RECYCLE: "1800"
+
+  # Redis Broker for Background Worker Queue
+  REDIS_URL: "redis://redis.medical-analyzer.svc.cluster.local:6379/0"
+  ASYNC_PROCESSING_ENABLED: "true"
+
+  # Storage Provider (Local PersistentVolumeClaim or S3/MinIO)
+  STORAGE_BACKEND: "local"
+  STORAGE_LOCAL_PATH: "/app/uploads"
+
+  # Ollama Local Service Configuration
+  LLM_PROVIDER: "ollama"
+  OLLAMA_BASE_URL: "http://ollama.medical-analyzer.svc.cluster.local:11434"
+  OLLAMA_MODEL: "qwen2.5:1.5b"
+  OLLAMA_FALLBACK_MODEL: "qwen2.5:3b"
+  OLLAMA_THREADS: "8"
+
+  # AI Bounds, Latency & Generation Bounds
+  AI_TEMPERATURE: "0.2"
+  AI_MAX_TOKENS: "160"
+  AI_TIMEOUT_SECONDS: "30.0"
+  BOUNDED_CONTEXT_TOKENS: "350"
+  MAX_MODEL_ATTEMPTS: "2"
+  MAX_CHAT_INPUT_LENGTH: "1000"
+  RATE_LIMIT_AI_PER_MINUTE: "30"
+
+  # TypeSafe Jev System-1 Triage
+  JEV_ENABLED: "true"
+  JEV_MODEL: "jev-1.13.0"
+  JEV_TOOL_CONFIDENCE_HIGH: "0.70"
+  JEV_TOOL_CONFIDENCE_MEDIUM: "0.40"
+  JEV_EMERGENCY_THRESHOLD: "0.85"
+  JEV_MEDICATION_THRESHOLD: "0.80"
+  JEV_TIMEOUT_MS: "1500"
+
+  # CORS Allowed Origins
+  CORS_ORIGINS: "http://localhost:5173,http://localhost:3000,http://localhost:80"

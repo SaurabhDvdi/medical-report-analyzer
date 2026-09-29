@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  namespace: medical-analyzer
+  labels:
+    app.kubernetes.io/name: frontend
+    app.kubernetes.io/part-of: clinical-intelligence-platform
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: frontend

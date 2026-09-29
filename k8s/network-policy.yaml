@@ -1,0 +1,54 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: isolate-data-and-llm
+  namespace: medical-analyzer
+  labels:
+    app.kubernetes.io/name: isolate-data-and-llm
+    app.kubernetes.io/part-of: clinical-intelligence-platform
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["mysql", "redis", "ollama"]
+  policyTypes:
+    - Ingress
+  ingress:
+    # Only allow connections from backend API pods and background worker pods
+    - from:
+        - podSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/name
+                operator: In
+                values: ["backend", "worker"]
+      ports:
+        - protocol: TCP
+          port: 3306
+        - protocol: TCP
+          port: 6379
+        - protocol: TCP
+          port: 11434
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-ingress-to-app
+  namespace: medical-analyzer
+  labels:
+    app.kubernetes.io/name: allow-ingress-to-app
+    app.kubernetes.io/part-of: clinical-intelligence-platform
+spec:
+  podSelector:
+    matchExpressions:
+      - key: app.kubernetes.io/name
+        operator: In
+        values: ["frontend", "backend"]
+  policyTypes:
+    - Ingress
+  ingress:
+    - ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 8000

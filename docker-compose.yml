@@ -1,67 +1,158 @@
 version: '3.8'
 
 services:
-  # MySQL Database Service
+  # ── 1. MySQL Relational Database ─────────────────────────────────────────────
   mysql:
     image: mysql:8.0
-    container_name: medical_reports_mysql
+    container_name: medical_mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_secure_password_123!}
       MYSQL_DATABASE: ${DB_NAME:-medical_report_analysis}
-      MYSQL_USER: ${DB_USER:-root}
-      MYSQL_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_USER: ${DB_USER:-medical_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-medical_secure_password_123!}
     ports:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-medical_user}", "-p${DB_PASSWORD:-medical_secure_password_123!}"]
       interval: 10s
       timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - app-network
+
+  # ── 2. Redis Background Queue Broker ────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: medical_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
     networks:
       - app-network
 
-  # FastAPI Backend API Service
+  # ── 3. Ollama Offline Clinical LLM Inference Service ────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: medical_ollama
+    restart: unless-stopped
+    environment:
+      - OLLAMA_NUM_PARALLEL=2
+      - OLLAMA_MAX_LOADED_MODELS=2
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - app-network
+
+  # ── 4. FastAPI Backend Modular Monolith API ─────────────────────────────────
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: medical_reports_backend
+    container_name: medical_backend
     restart: unless-stopped
     environment:
-      ENVIRONMENT: development
-      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
-      DATABASE_URL: mysql+pymysql://${DB_USER:-root}:${DB_PASSWORD:-root}@mysql:3306/${DB_NAME:-medical_report_analysis}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-to-a-secure-random-256bit-string}
+      DATABASE_URL: mysql+pymysql://${DB_USER:-medical_user}:${DB_PASSWORD:-medical_secure_password_123!}@mysql:3306/${DB_NAME:-medical_report_analysis}
       CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:80
+      REDIS_URL: redis://redis:6379/0
+      ASYNC_PROCESSING_ENABLED: ${ASYNC_PROCESSING_ENABLED:-true}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      STORAGE_LOCAL_PATH: /app/uploads
       LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
-      GROQ_API_KEY: ${GROQ_API_KEY:-your_groq_api_key_here}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      OLLAMA_FALLBACK_MODEL: ${OLLAMA_FALLBACK_MODEL:-qwen2.5:3b}
+      OLLAMA_THREADS: 8
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
     ports:
       - "8000:8000"
     volumes:
-      - uploads_data:/app/uploads
+      - reports_data:/app/uploads
       - charts_data:/app/charts
     depends_on:
       mysql:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      ollama:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+      start_period: 15s
     networks:
       - app-network
 
-  # Frontend SPA Development Service
+  # ── 5. Background OCR & Clinical Processing Worker ──────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    container_name: medical_worker
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      DATABASE_URL: mysql+pymysql://${DB_USER:-medical_user}:${DB_PASSWORD:-medical_secure_password_123!}@mysql:3306/${DB_NAME:-medical_report_analysis}
+      REDIS_URL: redis://redis:6379/0
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      STORAGE_LOCAL_PATH: /app/uploads
+      LLM_PROVIDER: ${LLM_PROVIDER:-ollama}
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:1.5b}
+      OLLAMA_FALLBACK_MODEL: ${OLLAMA_FALLBACK_MODEL:-qwen2.5:3b}
+      OLLAMA_THREADS: 8
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      TYPESAFE_API_KEY: ${TYPESAFE_API_KEY:-}
+    volumes:
+      - reports_data:/app/uploads
+      - charts_data:/app/charts
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - app-network
+
+  # ── 6. React / Vite Frontend with Reverse Proxy Nginx ───────────────────────
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: http://localhost:8000
-    container_name: medical_reports_frontend
+    container_name: medical_frontend
     restart: unless-stopped
     ports:
       - "5173:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
     networks:
       - app-network
 
@@ -71,5 +162,7 @@ networks:
 
 volumes:
   mysql_data:
-  uploads_data:
+  redis_data:
+  ollama_data:
+  reports_data:
   charts_data:

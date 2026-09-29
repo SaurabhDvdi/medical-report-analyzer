@@ -33,4 +33,8 @@ chromadb
 httpx
 psutil
 typesafe-sdk==0.7.1
+redis>=5.0.0
+alembic>=1.13.0
+gunicorn>=21.2.0
+
 

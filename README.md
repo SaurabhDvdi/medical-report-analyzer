@@ -617,53 +617,273 @@ npm run dev
 
 ---
 
+## 🐳 Docker Containerization & Multi-Service Compose
+
+The platform is fully containerized across 6 orchestrated services running on an isolated bridge network (`app-network`):
+
+```text
+Internet
+   │
+   ▼
+Frontend Nginx (Port 5173) ──► Reverse Proxy /api ──► FastAPI Backend (Port 8000)
+                                                             │
+                              ┌──────────────────────────────┼──────────────────────────────┐
+                              ▼                              ▼                              ▼
+                        MySQL 8.0                      Redis 7.0                     Ollama Service
+                       (Port 3306)                    (Port 6379)                    (Port 11434)
+                              │                              │                              │
+                              ▼                              ▼                              │
+                        mysql_data              queue:report_processing                     │
+                          Volume                             │                              │
+                                                             ▼                              │
+                                                      Worker Container <────────────────────┘
+                                                   (OCR & Clinical NLP)
+                                                             │
+                                                             ▼
+                                                    reports_data Volume
+```
+
+### Services Overview
+
+| Service | Container Name | Base Image / Context | Exposed Ports | Persistent Volume | Role |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `frontend` | `medical_frontend` | `./frontend` (`nginx:alpine`) | `5173:80` | N/A | React SPA static asset delivery, SPA client routing fallback, reverse proxy `/api/`, and unbuffered SSE stream handling. |
+| `backend` | `medical_backend` | `./backend` (`python:3.11-slim`) | `8000:8000` | `reports_data`, `charts_data` | Modular Monolith API running under `gunicorn` + `uvicorn` workers (UID 1000). Handles auth, RBAC, Jev triage, and report CRUD. |
+| `mysql` | `medical_mysql` | `mysql:8.0` | `3306:3306` | `mysql_data` | Relational persistence for 12 domain tables. Automated health check via `mysqladmin ping`. |
+| `redis` | `medical_redis` | `redis:7-alpine` | `6379:6379` | `redis_data` | AOF-persisted queue broker for decoupling CPU-intensive OCR and PDF extraction from HTTP requests. |
+| `ollama` | `medical_ollama` | `ollama/ollama:latest` | `11434:11434` | `ollama_data` | Offline CPU clinical inference hosting `qwen2.5:1.5b` (primary) and `qwen2.5:3b` (fallback). |
+| `worker` | `medical_worker` | `worker/Dockerfile` | Internal | `reports_data`, `charts_data` | Background daemon listening on Redis queue `medical:queue:report_processing` for OCR, table extraction, and normalization. |
+
+### Running with Docker Compose
+
+1. **Configure Environment:**
+   ```bash
+   cp .env.example .env
+   ```
+2. **Build and Start All Containers:**
+   ```bash
+   docker compose build
+   docker compose up -d
+   ```
+3. **Verify Container Health:**
+   ```bash
+   docker compose ps
+   ```
+4. **Pull Local Clinical LLM Models into Persistent Volume:**
+   - **Linux / macOS:**
+     ```bash
+     chmod +x scripts/init-ollama.sh
+     ./scripts/init-ollama.sh
+     ```
+   - **Windows:**
+     ```cmd
+     scripts\init-ollama.bat
+     ```
+5. **Inspect Streaming Logs:**
+   ```bash
+   docker compose logs -f backend
+   docker compose logs -f worker
+   ```
+
+---
+
+## ☸️ Kubernetes Production Architecture & Manifests
+
+The `k8s/` directory contains declarative manifests organized under the dedicated `medical-analyzer` namespace:
+
+```text
+k8s/
+├── namespace.yaml                  # Dedicated 'medical-analyzer' namespace
+├── configmap.yaml                  # Unified application environment settings
+├── secrets.example.yaml            # Secret template for DB password, JWT secret, and API keys
+├── reports-pvc.yaml                # Shared ReadWriteMany PVC for medical report storage
+├── ingress.yaml                    # Nginx Ingress with upload limits & unbuffered SSE streaming
+├── network-policy.yaml             # Zero-trust network isolation for MySQL, Redis, and Ollama
+├── hpa.yaml                        # HorizontalPodAutoscalers for backend and worker pods
+├── backend/
+│   ├── deployment.yaml             # 2 stateless replicas, liveness/readiness probes, non-root user 1000
+│   └── service.yaml                # ClusterIP service on port 8000
+├── frontend/
+│   ├── deployment.yaml             # 2 replicas serving Nginx SPA bundle
+│   └── service.yaml                # ClusterIP service on port 80
+├── worker/
+│   ├── deployment.yaml             # Background worker deployment with reports-storage PVC mount
+│   └── service.yaml                # Headless ClusterIP service
+├── redis/
+│   ├── deployment.yaml             # 1 replica Redis instance with healthcheck
+│   └── service.yaml                # ClusterIP service on port 6379
+├── ollama/
+│   ├── deployment.yaml             # 1 replica Ollama instance with CPU limits & health probe
+│   ├── service.yaml                # ClusterIP service on port 11434 (never exposed publicly)
+│   └── pvc.yaml                    # 20Gi PVC persisting Ollama models
+└── mysql/
+    ├── statefulset.yaml            # StatefulSet with automated health probes and volume mount
+    ├── service.yaml                # ClusterIP service on port 3306
+    └── pvc.yaml                    # 20Gi PVC persisting MySQL relational data
+```
+
+### Local Kubernetes Deployment Workflow (Minikube / Kind)
+
+```bash
+# 1. Apply Namespace, ConfigMap, Secrets, and Storage Claims
+kubectl apply -f k8s/namespace.yaml
+kubectl apply -f k8s/configmap.yaml
+kubectl apply -f k8s/secrets.example.yaml
+kubectl apply -f k8s/reports-pvc.yaml
+
+# 2. Deploy Internal Data Infrastructure
+kubectl apply -f k8s/mysql/
+kubectl apply -f k8s/redis/
+kubectl apply -f k8s/ollama/
+
+# 3. Deploy Application Services
+kubectl apply -f k8s/backend/
+kubectl apply -f k8s/worker/
+kubectl apply -f k8s/frontend/
+kubectl apply -f k8s/ingress.yaml
+kubectl apply -f k8s/network-policy.yaml
+
+# 4. Verify Rollout Status
+kubectl get pods -n medical-analyzer
+kubectl get svc -n medical-analyzer
+kubectl get pvc -n medical-analyzer
+kubectl get ingress -n medical-analyzer
+```
+
+### Production Cloud Migration (EKS, GKE, AKS)
+To transition from local Kubernetes to Managed Cloud Kubernetes:
+1. **Managed Database:** Point `DB_HOST` in `k8s/configmap.yaml` to an AWS RDS, Google Cloud SQL, or Azure Database for MySQL instance. Delete `k8s/mysql/` manifests.
+2. **Object Storage:** Set `STORAGE_BACKEND=s3` and configure `S3_BUCKET_NAME`, `S3_ACCESS_KEY`, and `S3_SECRET_KEY` in `k8s/secrets.example.yaml`. This replaces the local `reports-pvc` with cloud-native S3 / GCS.
+3. **Ingress & TLS:** Replace `nginx.ingress.kubernetes.io/ssl-redirect: "false"` with `cert-manager` annotations (`cert-manager.io/cluster-issuer: "letsencrypt-prod"`).
+4. **Secret Management:** Wire secrets via AWS Secrets Manager, Google Secret Manager, or HashiCorp Vault using the Kubernetes External Secrets Operator.
+
+---
+
+## 💾 Storage Architecture (`StorageService`)
+
+Report persistence is decoupled from ephemeral container filesystems via [`backend/services/storage_service.py`](file:///d:/medical-report-analyzer/backend/services/storage_service.py):
+- **`LocalStorageService`**: Default provider. Stores reports on a persistent volume mount (`/app/uploads`), sanitizing filenames against path traversal attacks.
+- **`S3StorageService`**: Cloud provider. Streams report uploads to S3-compatible object stores (AWS S3, MinIO, GCP Storage) with local caching for instant OCR/PyMuPDF coordinate parsing.
+- Factory function `get_storage_service()` dynamically selects the backend based on `STORAGE_BACKEND` (`local` or `s3`).
+
+---
+
+## ⚡ Asynchronous Processing Architecture (`QueueService` & `worker.py`)
+
+To prevent multi-second OCR extraction from blocking user uploads, the system introduces a queue architecture:
+- **`ASYNC_PROCESSING_ENABLED=true`**: `/api/reports/upload` validates the user and file, writes the report to persistent storage, records a `processing` row in MySQL, pushes a task to Redis list `medical:queue:report_processing`, and immediately returns HTTP 200.
+- **`ASYNC_PROCESSING_ENABLED=false`**: Automatically falls back to in-process background task execution, ensuring full backward compatibility and zero external dependencies during offline test execution.
+- **Worker Daemon ([`backend/worker.py`](file:///d:/medical-report-analyzer/backend/worker.py))**: Consumes tasks using blocking `BRPOP`, runs deterministic coordinate extraction, normalizes CBC/lab values, flags critical findings, triggers non-blocking clinical summaries, and updates MySQL to `completed`.
+
+---
+
+## 🩺 Health Check Probes & Observability
+
+Three standardized endpoints provide fine-grained health status for Kubernetes and Docker orchestrators:
+
+| Endpoint | HTTP Status | Probe Type | Description |
+| :--- | :--- | :--- | :--- |
+| `GET /health` | 200 OK | General | Verifies process responsiveness. |
+| `GET /health/live` | 200 OK | Liveness | Lightweight probe determining solely whether the process is alive. **0 database calls, 0 LLM calls, 0 OCR**. |
+| `GET /health/ready` | 200 OK / 503 Service Unavailable | Readiness | Verifies database connectivity (`SELECT 1`). Returns 503 if MySQL is unreachable. Does not invoke LLM. |
+| `GET /ready` | 200 OK / 503 | Legacy Alias | Backward compatibility alias for existing monitors. |
+
+---
+
+## 🗄️ Database Migrations (`Alembic`)
+
+The application includes an Alembic migration system configured in `backend/alembic.ini` and `backend/alembic/env.py`:
+- **Initial Migration:** [`backend/alembic/versions/001_initial_schema.py`](file:///d:/medical-report-analyzer/backend/alembic/versions/001_initial_schema.py) covers all 12 platform tables.
+- **Safe Existing Database Upgrades:** Employs SQLAlchemy `Inspector` checks to verify table existence before execution, preventing duplicate table creation errors on existing databases.
+- **Run Migrations:**
+  ```bash
+  cd backend
+  alembic upgrade head
+  ```
+
+---
+
+## 🛡️ Production Logging & Secret Scrubbing
+
+Configured in [`backend/logging_config.py`](file:///d:/medical-report-analyzer/backend/logging_config.py):
+- **Container Output:** Streams directly to `sys.stdout` (and `sys.stderr` for errors) for compatibility with `docker logs` and `kubectl logs`.
+- **Sensitive Data Scrubber (`SanitizedFormatter`):** Uses regex pattern matching to automatically redact:
+  - Passwords: `***REDACTED***`
+  - JWT Bearer Tokens: `***REDACTED_JWT***`
+  - API Keys: `***REDACTED_KEY***`
+  - Secrets: `***REDACTED_SECRET***`
+- Medical report contents and patient identifiable identifiers are excluded from system log streams.
+
+---
+
 ## 🧪 Testing & Quality Assurance
 
-The backend contains a test suite in `backend/tests/` using `pytest`.
+The platform includes a comprehensive test suite in `backend/tests/` running on `pytest`.
 
 Run all tests from `backend/`:
-
 ```bash
 cd backend
 pytest tests/ -v
 ```
 
 ### 📊 Test Suite Status & Coverage:
-- **Total Tests:** **182 passed** (100% pass rate, 0 failures, 0 skipped, 0 regressions)
-- **Execution Time:** ~310 seconds across all security, clinical extraction, OCR, and AI suites.
+- **Total Tests:** **195 passed** (100% pass rate, 0 failures, 0 skipped, 0 regressions)
+- **Execution Time:** ~238 seconds across all security, clinical extraction, OCR, AI, and containerization suites.
 
 ### Key Test Suites:
-- **`test_doctor_notifications.py` (14 tests / 24 scenarios):** Validates the doctor notification system end-to-end:
-  - Patient access request notification creation and doctor scoping.
-  - Minimal disclosure privacy (verifying patient name/age payload without medical data leakage).
-  - Strict IDOR defense (Doctor A cannot read, accept, or reject Doctor B's requests — HTTP 403).
-  - Transactional Accept (`approved`) and Reject (`rejected`) state transitions.
-  - Notification resolution tracking (`is_read=True`, `resolved_at=now()`).
-  - Duplicate request prevention (`"Access request already pending"`).
-  - Real-time polling unread count endpoints.
-- **`test_context_aware_ai_and_clear_chat.py` (11 tests):** Verifies patient context isolation and conversation management:
-  - Automatic scoping to authenticated patient from JWT (no manual ID entry).
-  - Doctor active patient context selection (`active_patient_id`) validated via `PatientDoctorAccess`.
-  - Prompt manipulation defense (prompt cannot switch active patient or bypass authorization).
-  - Non-destructive Clear Conversation (clears AI chat history without touching medical records).
-- **`test_agent_security_and_tools.py`:** Tests MCP tool registration, execution logic, and security scoping.
-- **`test_ai_security.py`:** Tests role-based access control and unauthorized doctor query blocking.
-- **`test_three_tier_and_streaming.py`:** Tests Jev System-1 multi-head triage, emergency short-circuits, and SSE streaming events.
-- **`test_deployment_hardening.py`:** Tests rate limiting, request size limits, and secret scrubbing.
-- **`test_cbc_coordinate_and_normalization.py`:** Tests PyMuPDF coordinate grouping and extraction idempotency.
+- **`test_deployment_k8s_docker.py` (13 tests):** Validates Kubernetes readiness/liveness probes, database connectivity failover, `StorageService` path traversal prevention, `QueueService` Redis enqueueing, logging secret scrubbing, and report download IDOR protection.
+- **`test_doctor_notifications.py` (14 tests / 24 scenarios):** Validates patient access request notifications, minimal disclosure privacy, IDOR defense, and transactional approvals.
+- **`test_context_aware_ai_and_clear_chat.py` (11 tests):** Verifies patient JWT scoping, doctor active patient verification, and non-destructive chat clearing.
+- **`test_deployment_hardening.py`:** Tests bounded failover, rate limiting, request size limits, and ID scrubbing.
+- **`test_three_tier_and_streaming.py`:** Tests Jev System-1 multi-head triage, emergency short-circuits (<1ms), and SSE token streaming.
 - **`test_medical_classifier_and_rejection.py`:** Tests document classification and non-medical document rejection.
+- **`test_cbc_coordinate_and_normalization.py`:** Tests PyMuPDF coordinate grouping and extraction idempotency.
 - **`test_pre_deployment_audit.py`:** Tests pre-deployment health endpoints and audit checks.
+
+---
+
+## 🔄 Troubleshooting & Rollback
+
+### Common Operational Issues
+
+1. **Ollama Connection Timeout inside Container:**
+   - Verify `OLLAMA_BASE_URL=http://ollama:11434` is set (not `localhost`).
+   - Test connectivity from backend container:
+     ```bash
+     docker compose exec backend curl -s http://ollama:11434/api/tags
+     ```
+2. **Worker Not Processing Jobs:**
+   - Verify Redis is healthy: `docker compose exec redis redis-cli ping`
+   - Check pending queue length: `docker compose exec redis redis-cli llen medical:queue:report_processing`
+   - Inspect worker logs: `docker compose logs -f worker`
+3. **Database Migration Desynchronization:**
+   - Verify migration state: `cd backend && alembic current`
+   - Stamp existing database: `cd backend && alembic stamp head`
+
+### Rollback Procedures
+- **Docker Compose:**
+  ```bash
+  docker compose down
+  git checkout <previous_commit>
+  docker compose up -d --build
+  ```
+- **Kubernetes Rollback:**
+  ```bash
+  kubectl rollout undo deployment/backend -n medical-analyzer
+  kubectl rollout undo deployment/worker -n medical-analyzer
+  kubectl rollout undo deployment/frontend -n medical-analyzer
+  ```
 
 ---
 
 ## 🚀 Limitations & Future Roadmap
 
 ### Current System Boundaries
-- **Local SQLite default:** SQLite database enabled by default for rapid local deployment; PyMySQL supported for MySQL production instances.
+- **In-Cluster Ollama:** CPU-based inference; response latency depends on host CPU core allocation. GPU passthrough supported by adding NVIDIA container runtime.
 - **English Language OCR:** Extraction rules optimized primarily for English medical lab reports.
 
 ### Future Roadmap
-- [ ] **HIPAA Audit Logging:** Cryptographic append-only log tracking every patient record viewing event.
+- [ ] **GPU Operator Integration:** NVIDIA GPU device plugin support for sub-second Ollama inference in Kubernetes.
 - [ ] **DICOM Radiological Imaging:** Built-in viewer for X-ray, CT, and MRI scans.
-- [ ] **Multi-Language OCR Support:** Support for international lab report formats and languages.
 - [ ] **HL7 FHIR Interoperability:** Native import and export of FHIR clinical resources.
+

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: medical-analyzer
+  labels:
+    app.kubernetes.io/name: medical-report-analyzer
+    app.kubernetes.io/part-of: clinical-intelligence-platform

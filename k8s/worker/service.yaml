@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  namespace: medical-analyzer
+  labels:
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: clinical-intelligence-platform
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: worker

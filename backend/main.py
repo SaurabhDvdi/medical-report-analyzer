@@ -162,12 +162,25 @@ app.include_router(ai_routes.router)
 
 @app.get("/health", tags=["system"])
 async def health_check():
+    """General health check verifying application process is responsive."""
     return {"status": "healthy", "service": "Medical Report Analyzer API"}
 
 
-@app.get("/ready", tags=["system"])
-async def readiness_check():
-    """Readiness endpoint verifying database connection health."""
+@app.get("/health/live", tags=["system"])
+async def liveness_check():
+    """
+    Kubernetes liveness probe: Determines solely whether the process is alive.
+    Must NOT call Ollama, LLMs, OCR, or perform database operations.
+    """
+    return {"status": "alive", "service": "Medical Report Analyzer API"}
+
+
+@app.get("/health/ready", tags=["system"])
+async def readiness_probe():
+    """
+    Kubernetes readiness probe: Determines if backend can accept traffic.
+    Verifies database connectivity without invoking LLM or OCR.
+    """
     db = SessionLocal()
     try:
         db.execute(text("SELECT 1"))
@@ -176,10 +189,16 @@ async def readiness_check():
         logger.error(f"Readiness check failed: {e}")
         return JSONResponse(
             status_code=503,
-            content={"status": "not_ready", "database": "disconnected"}
+            content={"status": "not_ready", "database": "disconnected", "error": str(e)}
         )
     finally:
         db.close()
+
+
+@app.get("/ready", tags=["system"])
+async def readiness_check():
+    """Legacy readiness endpoint alias for backward compatibility."""
+    return await readiness_probe()
 
 
 if __name__ == "__main__":

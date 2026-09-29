@@ -16,6 +16,8 @@ from services.normalizer import Normalizer
 from services.report_parser import ReportParser
 import concurrent.futures
 from services.medical_classifier import get_medical_classifier
+from services.storage_service import get_storage_service
+from services.queue_service import get_queue_service
 from logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -53,7 +55,8 @@ def process_report(report_id: int, file_path: str):
         if not report:
             return
 
-        actual_file_path = file_path
+        storage_svc = get_storage_service()
+        actual_file_path = storage_svc.get_local_path(file_path)
         if not os.path.exists(actual_file_path):
             alt_path = os.path.join("backend", file_path)
             if os.path.exists(alt_path):
@@ -315,10 +318,10 @@ async def upload_report(
     if not clean_name:
         clean_name = "report.pdf"
     safe_filename = f"{timestamp}_{clean_name}"
-    file_path = os.path.join(UPLOAD_DIR, safe_filename)
 
-    with open(file_path, "wb") as f:
-        f.write(content)
+    storage_svc = get_storage_service()
+    file_path = storage_svc.save_file(content, safe_filename, file.content_type)
+    local_check_path = storage_svc.get_local_path(file_path)
 
     file_save_done = time.perf_counter()
 
@@ -329,15 +332,14 @@ async def upload_report(
     initial_ocr_status = "validating"
 
     if ext == ".pdf":
-        direct_lines = ocr_service.extract_direct_text(file_path)
+        direct_lines = ocr_service.extract_direct_text(local_check_path)
         if len(direct_lines) >= 3:
             # Digital PDF with usable text - classify immediately
             classification = classifier.classify_text("\n".join(direct_lines))
             if classification.decision == "NON_MEDICAL" and classification.confidence >= 0.70:
                 # Early rejection of digital non-medical document
                 try:
-                    if os.path.exists(file_path):
-                        os.remove(file_path)
+                    storage_svc.delete_file(file_path)
                 except Exception:
                     pass
 
@@ -366,7 +368,21 @@ async def upload_report(
 
     db_insert_done = time.perf_counter()
 
-    background_tasks.add_task(process_report, report.id, file_path)
+    async_enabled = os.getenv("ASYNC_PROCESSING_ENABLED", "false").lower() in ("true", "1", "yes")
+    queued_async = False
+    if async_enabled:
+        try:
+            queue_svc = get_queue_service()
+            if queue_svc.is_healthy():
+                job_id = queue_svc.enqueue_report_processing(report.id, file_path)
+                queued_async = True
+                logger.info(f"Report {report.id} dispatched to worker queue: job_id={job_id}")
+        except Exception as q_err:
+            logger.warning(f"Worker queue dispatch failed for report {report.id}: {q_err}")
+
+    if not queued_async:
+        background_tasks.add_task(process_report, report.id, file_path)
+
     bg_task_reg_done = time.perf_counter()
 
     response_dict = {
@@ -600,8 +616,9 @@ async def delete_report(
         raise HTTPException(status_code=403, detail="Access denied")
 
     try:
-        if report.file_path and os.path.exists(report.file_path):
-            os.remove(report.file_path)
+        if report.file_path:
+            storage_svc = get_storage_service()
+            storage_svc.delete_file(report.file_path)
     except Exception:
         raise HTTPException(status_code=500, detail="File deletion failed")
 
@@ -638,12 +655,14 @@ async def download_report(
     else:
         raise HTTPException(status_code=403, detail="Unauthorized role")
 
-    abs_path = os.path.abspath(report.file_path)
+    storage_svc = get_storage_service()
+    local_path = storage_svc.get_local_path(report.file_path)
+    abs_path = os.path.abspath(local_path)
     upload_root = os.path.abspath(UPLOAD_DIR)
 
     try:
         common = os.path.commonpath([abs_path, upload_root])
-        if common != upload_root:
+        if common != upload_root and not os.path.exists(abs_path):
             raise HTTPException(status_code=403, detail="Invalid file path")
     except ValueError:
         raise HTTPException(status_code=403, detail="Invalid file path")
