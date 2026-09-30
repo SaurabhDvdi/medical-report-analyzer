@@ -48,6 +48,12 @@ except Exception as e:
     else:
         logger.warning(f"Database table initialization notice: {e}")
 
+try:
+    from database import check_and_apply_migrations
+    check_and_apply_migrations(engine)
+except Exception as e:
+    logger.warning(f"Schema column check notice: {e}")
+
 # Startup Validation for AI Configuration & Readiness (Sections 23 & 24)
 try:
     from ai.config import AIConfig
@@ -74,6 +80,13 @@ try:
                 logger.warning(f"Primary Ollama model '{AIConfig.OLLAMA_MODEL}' is not pulled.")
             if not primary_ok and not fallback_ok:
                 logger.warning("Neither primary nor fallback Ollama model is available. AI readiness degraded to rule-based fallback.")
+    elif AIConfig.LLM_PROVIDER == "groq":
+        if not AIConfig.GROQ_API_KEY:
+            logger.error("GROQ_API_KEY is not configured in environment. AI endpoints will operate in rule-based fallback mode.")
+        elif not llm_svc.check_groq_reachable():
+            logger.warning("Groq API is unreachable or GROQ_API_KEY is invalid. AI endpoints will operate in rule-based fallback mode.")
+        else:
+            logger.info(f"Groq API connection verified successfully (Model: {AIConfig.GROQ_MODEL}).")
 except Exception as ai_err:
     logger.warning(f"AI startup validation notice: {ai_err}")
 

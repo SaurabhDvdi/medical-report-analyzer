@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Union
 from datetime import datetime, date
 
 class UserCreate(BaseModel):
@@ -32,18 +32,21 @@ class ReportResponse(BaseModel):
 
 class LabValueCreate(BaseModel):
     parameter_name: str
-    value: float
-    unit: str
-    reference_range: str
-    is_abnormal: bool
+    value: Optional[Union[float, str]] = None
+    qualitative_value: Optional[str] = None
+    unit: Optional[str] = None
+    reference_range: Optional[str] = None
+    is_abnormal: bool = False
 
 class LabValueResponse(BaseModel):
     id: int
     parameter_name: str
-    value: float
-    unit: str
-    reference_range: str
+    value: Optional[Union[float, str]] = None
+    qualitative_value: Optional[str] = None
+    unit: Optional[str] = None
+    reference_range: Optional[str] = None
     is_abnormal: bool
+    status: Optional[str] = None
 
 class MedicineCreate(BaseModel):
     name: str

@@ -136,48 +136,76 @@ class LabValidator:
             if clean_upper == acc.upper():
                 return acc, True, "UNIT_VALIDATED"
 
+        # If test accepts qualitative results, empty or absent unit is fine
+        if spec.get("acceptable_qualitative"):
+            return clean_unit, True, "UNIT_VALIDATED"
+
         # Unit mismatch/invalid
         return clean_unit, False, "UNIT_MISMATCH"
 
     def validate_value_domain(
         self,
-        value: Optional[float],
+        value: Any,
         spec: Dict[str, Any]
     ) -> Tuple[bool, str]:
         """
-        Perform value-domain sanity check against min/max numeric constraints.
-        Prevents accession numbers, phone numbers, or invalid floats from passing.
+        Perform value-domain sanity check against min/max numeric constraints
+        or acceptable qualitative results.
         """
         if value is None:
             return False, "VALUE_MISSING"
         if not spec:
             return False, "VALUE_UNVALIDATED"
 
+        # Qualitative check
+        if isinstance(value, str):
+            val_upper = value.strip().upper()
+            acc_qual = [q.upper() for q in spec.get("acceptable_qualitative", [])]
+            if val_upper in acc_qual:
+                return True, "VALUE_QUALITATIVE_VALID"
+            # Common qualitative tokens
+            if val_upper in {"POSITIVE", "NEGATIVE", "NIL", "ABSENT", "PRESENT", "REACTIVE", "NON-REACTIVE", "NORMAL", "CLEAR", "PALE YELLOW", "TRACE", "1+", "2+", "3+", "4+"}:
+                return True, "VALUE_QUALITATIVE_VALID"
+            # Range string like 3-5
+            if re.match(r"^\d+\s*[-–—]\s*\d+$", val_upper):
+                return True, "VALUE_PLAUSIBLE"
+            try:
+                val_num = float(value)
+            except ValueError:
+                return False, "VALUE_OUT_OF_DOMAIN"
+        else:
+            val_num = float(value)
+
         constraints = spec.get("value_constraints", {})
         min_val = constraints.get("min", 0.0)
         max_val = constraints.get("max", 100000.0)
 
-        if min_val <= value <= max_val:
+        if min_val <= val_num <= max_val:
             return True, "VALUE_PLAUSIBLE"
 
         return False, "VALUE_OUT_OF_DOMAIN"
 
     def parse_reference_range(self, ref_str: Optional[str]) -> Tuple[Optional[str], bool]:
         """
-        Parse and format reference range string (e.g. "80-140", "0.35-5.1", "M 3.70-5.80 F 3.50-5.40").
+        Parse and format reference range string (e.g. "80-140", "0.35-5.1", "<6.0", ">10", "Negative").
         """
         if not ref_str:
             return None, False
 
         clean = str(ref_str).strip()
 
-        # Basic range: 13-17 or 0.35 - 5.1
-        match = re.search(r"(\d+\.?\d*)\s*[\-\–\—\:]\s*(\d+\.?\d*)", clean)
-        if match:
-            return f"{match.group(1)}-{match.group(2)}", True
-
-        # Complex range (e.g. sex-specific)
+        # Complex range (e.g. sex-specific M.3.70-5.80 F.3.50-5.40)
         if any(c in clean.upper() for c in ["M ", "F ", "M.", "F."]):
             return clean, True
+
+        # Inequality ranges: <6.0, <=5, >10, >=2
+        match_ineq = re.search(r"([<>]=?\s*\d+\.?\d*)", clean)
+        if match_ineq:
+            return match_ineq.group(1).replace(" ", ""), True
+
+        # Basic range: 13-17 or 0.35 - 5.1 or 0 - 4/HPF
+        match = re.search(r"(\d+\.?\d*)\s*[\-\–\—\:]\s*(\d+\.?\d*(?:\s*/[a-zA-Z]+)?)", clean)
+        if match:
+            return f"{match.group(1)}-{match.group(2)}", True
 
         return clean, True

@@ -126,11 +126,21 @@ async def ai_health(db: Session = Depends(get_db)):
         logger.error(f"Database health check failed: {e}")
 
     llm_health = clinical_agent.llm_service.health_check()
-    primary_model = getattr(AIConfig, "OLLAMA_MODEL", "qwen2.5:1.5b")
-    fallback_model = getattr(AIConfig, "OLLAMA_FALLBACK_MODEL", "qwen2.5:3b")
-
-    primary_model_ok = clinical_agent.llm_service.check_model_available(primary_model)
-    fallback_model_ok = clinical_agent.llm_service.check_model_available(fallback_model)
+    if AIConfig.LLM_PROVIDER == "ollama":
+        primary_model = getattr(AIConfig, "OLLAMA_MODEL", "qwen2.5:1.5b")
+        fallback_model = getattr(AIConfig, "OLLAMA_FALLBACK_MODEL", "qwen2.5:3b")
+        primary_model_ok = clinical_agent.llm_service.check_model_available(primary_model)
+        fallback_model_ok = clinical_agent.llm_service.check_model_available(fallback_model)
+    elif AIConfig.LLM_PROVIDER == "groq":
+        primary_model = clinical_agent.llm_service.primary_model
+        fallback_model = clinical_agent.llm_service.fallback_model
+        primary_model_ok = llm_health.get("healthy", False)
+        fallback_model_ok = bool(fallback_model and primary_model_ok)
+    else:
+        primary_model = clinical_agent.llm_service.primary_model
+        fallback_model = clinical_agent.llm_service.fallback_model
+        primary_model_ok = llm_health.get("healthy", False)
+        fallback_model_ok = bool(fallback_model and primary_model_ok)
 
     is_healthy = db_ok and (llm_health.get("healthy", False) or primary_model_ok or fallback_model_ok)
 

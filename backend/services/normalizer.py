@@ -91,13 +91,14 @@ class Normalizer:
         if test.get("ref_range"):
             test["ref_range"] = str(test["ref_range"]).strip()
 
-        # Ensure float result
-        test["result"] = self._safe_float(test.get("result"))
+        # Ensure result is normalized (float if numeric, stripped string if qualitative)
+        test["result"] = self._normalize_result(test.get("result"))
 
-    def _safe_float(self, value: Any) -> Optional[float]:
+    def _normalize_result(self, value: Any) -> Any:
         if value is None:
             return None
         try:
             return float(value)
         except (ValueError, TypeError):
-            return None
+            val_str = str(value).strip()
+            return val_str if val_str else None

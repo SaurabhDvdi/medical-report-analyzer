@@ -136,6 +136,14 @@ export default function ReportViewer() {
     )
   }
 
+  const formatLabValue = (val) => {
+    if (val === null || val === undefined || val === '') return '—'
+    if (typeof val === 'string' && isNaN(Number(val))) {
+      return val
+    }
+    return safeFormatNumber(val, 'auto')
+  }
+
   const parameterNames = useMemo(
     () => [...new Set(labValues.map((lv) => lv.parameter_name))],
     [labValues]
@@ -443,7 +451,7 @@ export default function ReportViewer() {
                         {lv.parameter_name}
                       </td>
                       <td className="px-5 py-3.5 font-black text-sm text-slate-900">
-                        {safeFormatNumber(lv.value, 'auto')}
+                        {formatLabValue(lv.value)}
                       </td>
                       <td className="px-5 py-3.5 text-slate-500 font-medium">
                         {lv.unit || '—'}
@@ -492,7 +500,7 @@ export default function ReportViewer() {
                         {lv.parameter_name}
                       </h4>
                       <p className="text-lg font-black text-slate-900 tracking-tight">
-                        {safeFormatNumber(lv.value, 'auto')}{' '}
+                        {formatLabValue(lv.value)}{' '}
                         <span className="text-xs font-semibold text-slate-500">{lv.unit || ''}</span>
                       </p>
                     </div>

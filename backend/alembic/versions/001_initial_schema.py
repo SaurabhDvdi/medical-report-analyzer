@@ -121,9 +121,10 @@ def upgrade() -> None:
             sa.Column("id", sa.Integer(), primary_key=True, index=True),
             sa.Column("report_id", sa.Integer(), sa.ForeignKey("reports.id"), index=True),
             sa.Column("parameter_name", sa.String(255), index=True),
-            sa.Column("value", sa.Float()),
-            sa.Column("unit", sa.String(100)),
-            sa.Column("reference_range", sa.String(255)),
+            sa.Column("value", sa.Float(), nullable=True),
+            sa.Column("qualitative_value", sa.String(255), nullable=True),
+            sa.Column("unit", sa.String(100), nullable=True),
+            sa.Column("reference_range", sa.String(255), nullable=True),
             sa.Column("is_abnormal", sa.Boolean(), server_default=sa.false()),
         )
 

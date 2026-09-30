@@ -12,7 +12,7 @@ class ValidationResult:
     accepted: bool
     confidence: float
     canonical_name: Optional[str] = None
-    value: Optional[float] = None
+    value: Optional[Any] = None
     unit: Optional[str] = None
     ref_range: Optional[str] = None
     source_section: Optional[str] = None
@@ -27,7 +27,7 @@ class LabConfidenceCalculator:
     def evaluate(
         self,
         candidate_name: str,
-        value: Optional[float],
+        value: Optional[Any],
         unit: Optional[str],
         ref_range: Optional[str],
         raw_text: str,
@@ -80,7 +80,11 @@ class LabConfidenceCalculator:
                 reasons=reasons
             )
 
-        reasons.append("PLAUSIBLE_VALUE")
+        if value_reason == "VALUE_QUALITATIVE_VALID":
+            reasons.append("QUALITATIVE_VALUE_VALID")
+            score += 0.05
+        else:
+            reasons.append("PLAUSIBLE_VALUE")
 
         # 4. Unit Evaluation
         if unit_valid:

@@ -49,7 +49,8 @@ async def get_lab_values(
     return [{
         "id": lv.id,
         "parameter_name": lv.parameter_name,
-        "value": lv.value,
+        "value": lv.value if lv.value is not None else (lv.qualitative_value or ""),
+        "qualitative_value": lv.qualitative_value,
         "unit": lv.unit,
         "reference_range": lv.reference_range,
         "is_abnormal": lv.is_abnormal,

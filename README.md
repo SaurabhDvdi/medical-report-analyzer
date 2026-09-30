@@ -547,20 +547,24 @@ ACCESS_TOKEN_EXPIRE_MINUTES=60
 # External Binaries (Adjust path for Windows Poppler installation)
 POPPLER_PATH=C:/poppler/Library/bin
 
-# Active LLM Provider: "ollama" (Local Host), "gemini" (Cloud), or "groq" (Cloud)
-LLM_PROVIDER=ollama
+# Active LLM Provider: "groq" (Production Default), "ollama" (Local Offline), or "gemini" (Cloud)
+LLM_PROVIDER=groq
 
-# Ollama Local Settings (When LLM_PROVIDER=ollama)
+# Production Cloud LLM (Groq API)
+GROQ_API_KEY=your_groq_api_key_here
+GROQ_MODEL=qwen/qwen3.8-27b
+GROQ_BASE_URL=https://api.groq.com
+GROQ_FALLBACK_MODEL=openai/gpt-oss-20b
+
+# Ollama Local Offline Settings (Preserved for local development when LLM_PROVIDER=ollama)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=qwen2.5:1.5b
 OLLAMA_FALLBACK_MODEL=qwen2.5:3b
 OLLAMA_THREADS=8
 
-# Cloud Providers (Optional)
+# Alternate Cloud Providers (Optional)
 GEMINI_API_KEY=your_gemini_api_key_here
 GEMINI_MODEL=gemini-2.5-flash
-GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=llama-3.1-8b-instant
 
 # AI Generation & Bounded Context Settings
 AI_TEMPERATURE=0.2
@@ -734,7 +738,7 @@ kubectl apply -f k8s/reports-pvc.yaml
 # 2. Deploy Internal Data Infrastructure
 kubectl apply -f k8s/mysql/
 kubectl apply -f k8s/redis/
-kubectl apply -f k8s/ollama/
+# (Note: Standard production uses Groq API via ConfigMap/Secrets; k8s/ollama/ is optional for offline/air-gapped only)
 
 # 3. Deploy Application Services
 kubectl apply -f k8s/backend/

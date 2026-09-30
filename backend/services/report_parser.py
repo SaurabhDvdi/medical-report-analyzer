@@ -1,10 +1,7 @@
-"""
-Report Parser Service for Medical Report Analyzer.
-Structures raw measurements into clinical category panels and computes abnormal status.
-"""
-
-from typing import Dict, List, Any
+import re
+from typing import Dict, List, Any, Optional
 from logging_config import get_logger
+from services.lab_ontology import find_ontology_match
 
 logger = get_logger(__name__)
 
@@ -16,6 +13,7 @@ class ReportParser:
     def parse(self, extracted_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Convert extracted raw data into structured panels with measurements and computed status.
+        Supports multi-section, multi-category reports.
         """
         report_info = extracted_data.get("report_info", {})
         raw_tests = extracted_data.get("raw_tests", [])
@@ -29,20 +27,26 @@ class ReportParser:
         if not raw_tests:
             return structured
 
-        # Group measurements by section / category
-        category = self._detect_category(raw_tests)
-
-        panel = {
-            "category": category,
-            "panel_name": category,
-            "measurements": []
-        }
+        # Group tests into category panels
+        panels: Dict[str, List[Dict[str, Any]]] = {}
 
         for test in raw_tests:
             measurement = self._build_measurement(test)
-            panel["measurements"].append(measurement)
+            cat = self._resolve_category(test)
+            if cat not in panels:
+                panels[cat] = []
+            panels[cat].append(measurement)
 
-        structured["test_results"].append(panel)
+        for cat_name, measurements in panels.items():
+            structured["test_results"].append({
+                "category": cat_name,
+                "panel_name": cat_name,
+                "measurements": measurements
+            })
+
+        if structured["test_results"]:
+            structured["category"] = structured["test_results"][0]["category"]
+
         return structured
 
     def _build_measurement(self, test: Dict[str, Any]) -> Dict[str, Any]:
@@ -60,41 +64,83 @@ class ReportParser:
         value = test.get("result")
         ref = test.get("ref_range")
 
-        if value is None or not ref:
+        if value is None:
             return "Unknown"
 
-        try:
-            # Handle standard range e.g. "70-140" or "0.35-5.1"
-            import re
-            match = re.search(r"(\d+\.?\d*)\s*[\-\–\—\:]\s*(\d+\.?\d*)", str(ref))
-            if match:
-                low = float(match.group(1))
-                high = float(match.group(2))
+        val_str = str(value).strip().upper()
 
-                if value < low:
+        # 1. Qualitative status check
+        if val_str in ("POSITIVE", "REACTIVE", "PRESENT"):
+            # If reference specifies Negative, Positive is Abnormal
+            return "High" if "POSITIVE" not in str(ref or "").upper() else "Normal"
+        if val_str in ("NEGATIVE", "NON-REACTIVE", "NIL", "ABSENT", "NOT SEEN", "NORMAL", "CLEAR", "PALE YELLOW"):
+            return "Normal"
+
+        if not ref:
+            return "Normal"
+
+        # 2. Inequality reference range e.g. "<6.0", "<=5", ">10", ">=2"
+        m_ineq = re.search(r"([<>]=?)\s*(\d+\.?\d*)", str(ref))
+        if m_ineq:
+            op = m_ineq.group(1)
+            thresh = float(m_ineq.group(2))
+            try:
+                num_val = float(value)
+                if "<" in op:
+                    return "High" if num_val > thresh else "Normal"
+                elif ">" in op:
+                    return "Low" if num_val < thresh else "Normal"
+            except (ValueError, TypeError):
+                pass
+
+        # 3. Numeric range check
+        try:
+            num_val = float(value)
+            m_range = re.search(r"(\d+\.?\d*)\s*[\-\–\—\:]\s*(\d+\.?\d*)", str(ref))
+            if m_range:
+                low = float(m_range.group(1))
+                high = float(m_range.group(2))
+                if num_val < low:
                     return "Low"
-                elif value > high:
+                elif num_val > high:
                     return "High"
                 else:
                     return "Normal"
+        except (ValueError, TypeError):
+            # Range value comparison e.g. "3-5" vs "0 - 4"
+            m_val_range = re.search(r"(\d+\.?\d*)\s*[\-\–\—]\s*(\d+\.?\d*)", str(value))
+            m_ref_range = re.search(r"(\d+\.?\d*)\s*[\-\–\—]\s*(\d+\.?\d*)", str(ref))
+            if m_val_range and m_ref_range:
+                v_high = float(m_val_range.group(2))
+                r_high = float(m_ref_range.group(2))
+                return "High" if v_high > r_high else "Normal"
 
-            return "Unknown"
-        except Exception:
-            return "Unknown"
+        return "Normal"
 
-    def _detect_category(self, tests: List[Dict[str, Any]]) -> str:
-        names = " ".join([str(t.get("test_description", "")).lower() for t in tests])
-        sections = " ".join([str(t.get("source_section", "")).lower() for t in tests])
+    def _resolve_category(self, test: Dict[str, Any]) -> str:
+        """Resolve canonical category for a test measurement."""
+        desc = test.get("test_description", "")
+        match = find_ontology_match(desc)
+        if match and match.get("category"):
+            return match["category"]
 
-        combined = f"{names} {sections}"
-
-        if "hba1c" in combined or "glucose" in combined or "blood sugar" in combined:
-            return "DIABETES"
-        if "cholesterol" in combined or "ldl" in combined or "hdl" in combined or "lipid" in combined:
-            return "LIPID_PROFILE"
-        if "tsh" in combined or "t3" in combined or "t4" in combined or "thyroid" in combined:
-            return "THYROID"
-        if "rbc" in combined or "wbc" in combined or "haemoglobin" in combined or "hemoglobin" in combined or "haematology" in combined:
-            return "HAEMATOLOGY"
+        sec = test.get("source_section")
+        if sec:
+            s_upper = sec.strip().upper()
+            if "HAEMATOLOGY" in s_upper or "HEMATOLOGY" in s_upper or "CBC" in s_upper:
+                return "HAEMATOLOGY"
+            if "SEROLOGY" in s_upper or "IMMUNOLOGY" in s_upper:
+                return "SEROLOGY"
+            if "CLINICAL PATHOLOGY" in s_upper or "URINE" in s_upper:
+                return "CLINICAL PATHOLOGY"
+            if "BIOCHEMISTRY" in s_upper:
+                return "BIOCHEMISTRY"
+            if "LIPID" in s_upper:
+                return "LIPID PROFILE"
+            if "THYROID" in s_upper:
+                return "THYROID"
+            if "DIABETES" in s_upper:
+                return "DIABETES"
+            return s_upper
 
         return "GENERAL"

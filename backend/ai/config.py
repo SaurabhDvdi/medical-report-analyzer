@@ -20,7 +20,8 @@ class AIConfig:
     # Groq cloud configuration
     GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
     GROQ_BASE_URL: str = os.getenv("GROQ_BASE_URL", "https://api.groq.com")
-    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b")
+    GROQ_FALLBACK_MODEL: str = os.getenv("GROQ_FALLBACK_MODEL", "")
     
     # Common generation settings & bounds
     AI_TEMPERATURE: float = float(os.getenv("AI_TEMPERATURE", "0.2"))
@@ -63,6 +64,11 @@ class AIConfig:
                 warnings.append("OLLAMA_FALLBACK_MODEL is empty. Model failover will be disabled.")
             if cls.OLLAMA_THREADS < 1 or cls.OLLAMA_THREADS > 64:
                 warnings.append(f"OLLAMA_THREADS ({cls.OLLAMA_THREADS}) is outside typical range [1, 64].")
+        elif cls.LLM_PROVIDER == "groq":
+            if not cls.GROQ_MODEL:
+                errors.append("GROQ_MODEL must not be empty.")
+            if not cls.GROQ_API_KEY:
+                warnings.append("GROQ_API_KEY is not set. Groq cloud API requests will fail unless provided.")
 
         if not (0.0 <= cls.JEV_TOOL_CONFIDENCE_MEDIUM <= cls.JEV_TOOL_CONFIDENCE_HIGH <= 1.0):
             errors.append(f"Invalid confidence thresholds: MEDIUM ({cls.JEV_TOOL_CONFIDENCE_MEDIUM}) must be <= HIGH ({cls.JEV_TOOL_CONFIDENCE_HIGH}).")
@@ -79,6 +85,6 @@ class AIConfig:
             "warnings": warnings,
             "provider": cls.LLM_PROVIDER,
             "primary_model": cls.OLLAMA_MODEL if cls.LLM_PROVIDER == "ollama" else (cls.GEMINI_MODEL if cls.LLM_PROVIDER == "gemini" else cls.GROQ_MODEL),
-            "fallback_model": cls.OLLAMA_FALLBACK_MODEL if cls.LLM_PROVIDER == "ollama" else None
+            "fallback_model": cls.OLLAMA_FALLBACK_MODEL if cls.LLM_PROVIDER == "ollama" else (cls.GROQ_FALLBACK_MODEL if (cls.LLM_PROVIDER == "groq" and cls.GROQ_FALLBACK_MODEL) else None)
         }
 

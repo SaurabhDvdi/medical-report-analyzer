@@ -118,7 +118,19 @@ class OCRService:
                 return self._clean_lines(all_lines)
             return []
         except Exception as e:
-            logger.warning(f"Direct text extraction error: {e}")
+            logger.warning(f"Direct text extraction error: {e}, trying pypdf fallback...")
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                pypdf_lines = []
+                for page in reader.pages:
+                    txt = page.extract_text()
+                    if txt:
+                        pypdf_lines.extend([l.strip() for l in txt.split('\n') if len(l.strip()) > 1])
+                if len(pypdf_lines) >= 3:
+                    return self._clean_lines(pypdf_lines)
+            except Exception as pypdf_err:
+                logger.warning(f"pypdf fallback failed: {pypdf_err}")
             return []
 
     def extract_raw_direct_text(self, file_path: str) -> str:
@@ -134,8 +146,14 @@ class OCRService:
             doc.close()
             return "\n".join(raw_parts).strip()
         except Exception as e:
-            logger.warning(f"Raw direct text extraction error: {e}")
-            return ""
+            logger.warning(f"Raw direct text extraction error: {e}, trying pypdf fallback...")
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                parts = [p.extract_text() or "" for p in reader.pages]
+                return "\n".join(parts).strip()
+            except Exception:
+                return ""
 
     def extract_first_page_text(self, file_path: str) -> tuple:
         """
@@ -172,7 +190,18 @@ class OCRService:
             gc.collect()
             return ocr_lines, True
         except Exception as e:
-            logger.warning(f"First-page extraction error: {e}")
+            logger.warning(f"First-page extraction error: {e}, trying pypdf fallback...")
+            try:
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                if len(reader.pages) > 0:
+                    txt = reader.pages[0].extract_text()
+                    if txt:
+                        lines = [l.strip() for l in txt.split('\n') if len(l.strip()) > 1]
+                        if len(lines) >= 3:
+                            return self._clean_lines(lines), False
+            except Exception:
+                pass
             return [], True
 
     def extract_remaining_pages_text(self, file_path: str, start_page: int = 1) -> list:

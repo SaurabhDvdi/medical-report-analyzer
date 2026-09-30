@@ -221,8 +221,11 @@ def test_ai_health_endpoint():
     assert "status" in data
     assert "database" in data
     assert data["database"] == "connected"
-    assert data["primary_model"] == AIConfig.OLLAMA_MODEL
-    assert data["fallback_model"] == AIConfig.OLLAMA_FALLBACK_MODEL
+    if AIConfig.LLM_PROVIDER == "ollama":
+        assert data["primary_model"] == AIConfig.OLLAMA_MODEL
+        assert data["fallback_model"] == AIConfig.OLLAMA_FALLBACK_MODEL
+    elif AIConfig.LLM_PROVIDER == "groq":
+        assert data["primary_model"] == AIConfig.GROQ_MODEL
     assert "primary_model_available" in data
     assert "fallback_model_available" in data
 

@@ -70,8 +70,13 @@ else:
     engine_kwargs["pool_timeout"] = DB_POOL_TIMEOUT
     engine_kwargs["pool_recycle"] = DB_POOL_RECYCLE
     engine_kwargs["pool_pre_ping"] = True
+    engine_kwargs["connect_args"] = {
+        "connect_timeout": int(os.getenv("DB_CONNECT_TIMEOUT", "3")),
+        "read_timeout": int(os.getenv("DB_READ_TIMEOUT", "3")),
+        "write_timeout": int(os.getenv("DB_WRITE_TIMEOUT", "3"))
+    }
 
-    MAX_RETRIES = int(os.getenv("DB_CONNECT_RETRIES", "10" if IS_PRODUCTION_LIKE else "3"))
+    MAX_RETRIES = int(os.getenv("DB_CONNECT_RETRIES", "10" if IS_PRODUCTION_LIKE else "1"))
     RETRY_DELAY = float(os.getenv("DB_CONNECT_RETRY_DELAY", "2.0"))
 
     import time
@@ -118,5 +123,25 @@ def get_db() -> Generator[Session, None, None]:
 Base = declarative_base()
 
 
-
-
+def check_and_apply_migrations(db_engine):
+    """
+    Ensure newly added columns (such as qualitative_value in lab_values)
+    exist in the target database without destroying existing data.
+    Compatible with both MySQL and SQLite.
+    """
+    if db_engine is None:
+        return
+    try:
+        from sqlalchemy import inspect, text
+        inspector = inspect(db_engine)
+        existing_tables = inspector.get_table_names()
+        if "lab_values" in existing_tables:
+            columns = [c["name"].lower() for c in inspector.get_columns("lab_values")]
+            if "qualitative_value" not in columns:
+                logger.info("Applying schema migration: adding 'qualitative_value' column to 'lab_values'...")
+                with db_engine.connect() as conn:
+                    conn.execute(text("ALTER TABLE lab_values ADD COLUMN qualitative_value VARCHAR(255) NULL"))
+                    conn.commit()
+                logger.info("Successfully added 'qualitative_value' column to 'lab_values'.")
+    except Exception as e:
+        logger.warning(f"Notice during schema column verification: {e}")

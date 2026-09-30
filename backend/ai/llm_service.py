@@ -93,12 +93,17 @@ class LLMService:
     def primary_model(self) -> str:
         if self.provider == "ollama":
             return getattr(AIConfig, "OLLAMA_MODEL", "qwen2.5:1.5b")
+        elif self.provider == "groq":
+            return getattr(AIConfig, "GROQ_MODEL", "qwen/qwen3.8-27b")
         return self.model
 
     @property
     def fallback_model(self) -> Optional[str]:
         if self.provider == "ollama":
             return getattr(AIConfig, "OLLAMA_FALLBACK_MODEL", "qwen2.5:3b")
+        elif self.provider == "groq":
+            fb = getattr(AIConfig, "GROQ_FALLBACK_MODEL", "")
+            return fb if fb else None
         return None
 
     def get_chat_model(self, model_name: Optional[str] = None) -> Any:
@@ -135,9 +140,9 @@ class LLMService:
 
             try:
                 from langchain_groq import ChatGroq
-                logger.info(f"Initializing ChatGroq: model={self.model}, base_url={groq_root_base}")
+                logger.info(f"Initializing ChatGroq: model={target_model}, base_url={groq_root_base}")
                 return ChatGroq(
-                    model=self.model,
+                    model=target_model,
                     api_key=api_key,
                     base_url=groq_root_base,
                     temperature=self.temperature,
@@ -148,9 +153,9 @@ class LLMService:
                 logger.warning(f"ChatGroq initialization failed ({e1}); falling back to ChatOpenAI.")
                 try:
                     from langchain_openai import ChatOpenAI
-                    logger.info(f"Initializing ChatOpenAI for Groq: model={self.model}, base_url={openai_base}")
+                    logger.info(f"Initializing ChatOpenAI for Groq: model={target_model}, base_url={openai_base}")
                     return ChatOpenAI(
-                        model=self.model,
+                        model=target_model,
                         api_key=api_key,
                         base_url=openai_base,
                         temperature=self.temperature,

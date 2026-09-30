@@ -18,10 +18,13 @@ SECTION_KEYWORDS = {
     "HEMATOLOGY": "HAEMATOLOGY",
     "CBC": "HAEMATOLOGY",
     "COMPLETE BLOOD COUNT": "HAEMATOLOGY",
+    "COMPLETE BLOOD PICTURE": "HAEMATOLOGY",
+    "CBP": "HAEMATOLOGY",
     "BIOCHEMISTRY": "BIOCHEMISTRY",
     "BIO CHEMISTRY": "BIOCHEMISTRY",
     "SEROLOGY": "SEROLOGY",
     "PATHOLOGY": "PATHOLOGY",
+    "CLINICAL PATHOLOGY": "CLINICAL PATHOLOGY",
     "LIPID PROFILE": "LIPID PROFILE",
     "LIVER FUNCTION TEST": "LIVER FUNCTION",
     "LFT": "LIVER FUNCTION",
@@ -29,12 +32,21 @@ SECTION_KEYWORDS = {
     "KFT": "KIDNEY FUNCTION",
     "RFT": "KIDNEY FUNCTION",
     "THYROID": "THYROID",
-    "URINE ANALYSIS": "URINALYSIS",
-    "URINALYSIS": "URINALYSIS"
+    "URINE ANALYSIS": "CLINICAL PATHOLOGY",
+    "URINALYSIS": "CLINICAL PATHOLOGY",
+    "COMPLETE URINE EXAMINATION": "CLINICAL PATHOLOGY",
+    "CUE": "CLINICAL PATHOLOGY",
+    "IMMUNOLOGY": "SEROLOGY",
 }
 
 
 class LabCandidateExtractor:
+    QUALITATIVE_WORDS = {
+        'POSITIVE', 'NEGATIVE', 'NIL', 'ABSENT', 'PRESENT',
+        'REACTIVE', 'NON-REACTIVE', 'NON REACTIVE', 'NORMAL',
+        'CLEAR', 'PALE YELLOW', 'STRAW', 'HAZY', 'TURBID'
+    }
+
     def __init__(self):
         self.validator = LabValidator()
         self.confidence_calc = LabConfidenceCalculator()
@@ -76,13 +88,15 @@ class LabCandidateExtractor:
             if spec:
                 norm_unit, unit_valid, unit_reason = self.validator.validate_unit(raw_unit, spec)
             else:
-                norm_unit, unit_valid, unit_reason = raw_unit, False, "UNIT_UNVALIDATED"
+                norm_unit, unit_valid, unit_reason = raw_unit, bool(raw_unit), "UNIT_UNVALIDATED"
 
             # 6. Value-Domain Sanity Check
             if spec:
                 value_valid, value_reason = self.validator.validate_value_domain(raw_value, spec)
             else:
-                value_valid, value_reason = False, "VALUE_UNVALIDATED"
+                # If no ontology spec but has qualitative or numeric value
+                value_valid = True
+                value_reason = "VALUE_PLAUSIBLE"
 
             # 7. Reference Range Parse
             norm_ref, _ = self.validator.parse_reference_range(raw_ref)
@@ -115,86 +129,104 @@ class LabCandidateExtractor:
 
     def _detect_section(self, line: str) -> Optional[str]:
         clean = line.strip().upper()
+        # Direct keyword match or parenthetical match
         for kw, canonical_sec in SECTION_KEYWORDS.items():
-            if clean == kw or clean.startswith(f"{kw} ") or clean.endswith(f" {kw}"):
+            if clean == kw or clean.startswith(f"{kw} ") or clean.endswith(f" {kw}") or f"({kw})" in clean:
+                return canonical_sec
+        # Substring match for keywords with at least 5 letters
+        for kw, canonical_sec in sorted(SECTION_KEYWORDS.items(), key=lambda x: -len(x[0])):
+            if len(kw) >= 5 and kw in clean:
                 return canonical_sec
         return None
 
-    CLINICAL_METHODOLOGIES = [
-        r"Electrical\s+impedance",
-        r"SF\s+Cube\s+cell\s+analysis",
-        r"Capillary\s+photometry",
-        r"Colorimetric",
-        r"Calculated",
-        r"Derived",
-        r"Microscopic",
-        r"Automated",
-        r"Spectrophotometry",
-        r"Immunoturbidimetry",
-        r"Immunoassay",
-        r"Enzymatic",
-        r"ECLIA",
-        r"CLIA",
-        r"ELISA",
-        r"HPLC",
-    ]
-    METHOD_REGEX = re.compile(
-        r"\b(?:" + "|".join(CLINICAL_METHODOLOGIES) + r")\b",
-        re.IGNORECASE
-    )
-    FLAG_REGEX = re.compile(
-        r"(?<=\s)[HL\*](?=\s+\d)|(?<=\d)\s+[HL\*](?=\s|$)|(?<=\s)[HL\*](?=\s+[a-zA-Z/%])|\b(?:HIGH|LOW)\b",
-        re.IGNORECASE
-    )
+    def _clean_param_name(self, param_part: str) -> Tuple[str, Optional[str]]:
+        """Extract clean parameter name by separating parenthetical methodology."""
+        clean = param_part.strip()
+        m_method = re.search(r'\(\s*([^\)]+)\s*\)$', clean)
+        method = None
+        if m_method:
+            method = m_method.group(1).strip()
+            candidate = clean[:m_method.start()].strip()
+            if len(candidate) >= 2:
+                clean = candidate
+        # Strip trailing flags
+        clean = re.sub(r'\s+(?:HIGH|LOW|\*|[HL])$', '', clean, flags=re.I).strip()
+        return clean, method
 
-    def _parse_line_candidate(self, line: str) -> Optional[Tuple[str, Optional[float], Optional[str], Optional[str]]]:
+    def _parse_line_candidate(self, line: str) -> Optional[Tuple[str, Any, Optional[str], Optional[str]]]:
         """
-        Parse a line into candidate name, numeric value, unit, and reference range.
+        Parse a line into candidate name, value (float or str), unit, and reference range.
         Normalizes candidate line to tolerate clinical methodology tokens and abnormality flags.
         """
-        # 1. Normalize line for structured extraction without mutating raw OCR text
-        norm_line = self.METHOD_REGEX.sub(" ", line)
-        norm_line = self.FLAG_REGEX.sub(" ", norm_line)
-        # Strip leading single-letter noise/margin artifacts if present
-        norm_line = re.sub(r"^(?:[a-zA-Z0-9]{1,2}\s+)+", "", norm_line.strip())
-        norm_line = re.sub(r"\s+", " ", norm_line).strip()
-
-        # 2. Check for reference range at end of candidate line (e.g. "13.0 - 16.5" or "0.35-5.1" or "M 3.7-5.8 F 3.5-5.4")
-        ref_match = re.search(r"([M|F]?[\.\s]*\d+\.?\d*\s*[\-\–\—\:]\s*\d+\.?\d*.*)$", norm_line)
-        if ref_match:
-            ref_str = ref_match.group(1).strip()
-            prefix = norm_line[:ref_match.start()].strip()
-            # Prefix must have: Name Value [Unit]
-            pref_match = re.match(r"^([A-Za-z0-9\s\-\(\)\%\#\/\.]+?)\s+([\d\.]+)\s*([a-zA-Zµ/%\^\d\*\+]+)?$", prefix)
-            if pref_match:
-                name, val_str, unit = pref_match.groups()
-                name_clean = name.strip()
-                name_clean = self.METHOD_REGEX.sub("", name_clean).strip()
-                name_clean = re.sub(r"\s+[HL\*]$", "", name_clean).strip()
-                if not name_clean.isdigit() and len(name_clean) >= 2:
-                    try:
-                        val_float = float(val_str)
-                        return name_clean, val_float, unit, ref_str
-                    except ValueError:
-                        pass
-            # If prefix didn't match (e.g. no numeric result before reference range), return None
+        line_clean = re.sub(r"\s+", " ", line).strip()
+        if not line_clean or len(line_clean) < 3:
             return None
 
-        # 3. If no reference range at end, match: Name  Value  [Unit]
-        pattern = r"^([A-Za-z0-9\s\-\(\)\%\#\/\.]+?)\s+([\d\.]+)\s*([a-zA-Zµ/%\^\d\*\+]+)?$"
-        match = re.match(pattern, norm_line)
-        if match:
-            name, val_str, unit = match.groups()
-            name_clean = name.strip()
-            name_clean = self.METHOD_REGEX.sub("", name_clean).strip()
-            name_clean = re.sub(r"\s+[HL\*]$", "", name_clean).strip()
+        # Check metadata keywords to avoid false candidate parsing
+        upper = line_clean.upper()
+        if any(h in upper for h in [
+            'UMR NO', 'SAMPLE DATE', 'REPORTING DATE', 'SPECIMEN TYPE',
+            'DOCTOR NAME', 'BAR CD', 'PARAMETER RESULTS', 'END OF REPORT',
+            'VERIFIED BY', 'PAGE ', 'PRINT DT', 'PRINTED ON', 'REG NO',
+            'USER :', 'USER:'
+        ]) or re.search(r'\bUSER\s*:\s*\S+', upper):
+            return None
 
-            if not name_clean.isdigit() and len(name_clean) >= 2:
+        ref_range = None
+        rest = line_clean
+
+        # 1. Check for inequality reference range e.g. <6.0, <=5, >10, >=2
+        m_ineq = re.search(r'([<>]=?\s*\d+\.?\d*(?:\s*[a-zA-Z/%]+)?)$', rest)
+        if m_ineq:
+            ref_range = m_ineq.group(1).strip()
+            rest = rest[:m_ineq.start()].strip()
+        else:
+            # 2. Check for numeric reference range e.g. 13.0 - 17.5, 40 - 55, 80- 100, 1.010- 1.030, 0 - 4/HPF
+            m_dash = re.search(r'(\d+\.?\d*\s*[-–—:]\s*\d+\.?\d*(?:\s*/[a-zA-Z]+)?)$', rest)
+            if m_dash:
+                ref_range = m_dash.group(1).strip()
+                rest = rest[:m_dash.start()].strip()
+            else:
+                # 3. Check if line ends with TWO qualitative words (Result + Reference Range)
+                # e.g. 'protein ( Strip ) Nil Nil' -> val=Nil, ref=Nil
+                # e.g. 'MALARIAL PARASITE Negative NEGATIVE' -> val=Negative, ref=NEGATIVE
+                words = rest.split()
+                if len(words) >= 3 and words[-1].upper() in self.QUALITATIVE_WORDS and words[-2].upper() in self.QUALITATIVE_WORDS:
+                    ref_range = words[-1]
+                    rest = ' '.join(words[:-1])
+
+        # 4. Check for range value like '3 - 5/HPF' or '1 - 2/HPF' e.g. for Pus cells / Epithelial cells
+        m_rval = re.search(r'(\d+\s*[-–—]\s*\d+)\s*(/[a-zA-Z]+)?$', rest)
+        if m_rval:
+            val_str = m_rval.group(1).replace(' ', '')
+            unit = m_rval.group(2)
+            param_part = rest[:m_rval.start()].strip()
+            clean_name, method = self._clean_param_name(param_part)
+            if clean_name and len(clean_name) >= 2 and not clean_name.isdigit():
+                return clean_name, val_str, unit, ref_range
+
+        # 5. Check if ending with numeric value + optional unit: e.g. '16.0 gms' or '51.1 %' or '7.59 mg/l' or '6.0' or '5730 cells/cumm'
+        m_val = re.search(r'(\d+\.?\d*)\s*([a-zA-Z/%µ\^]+(?:/[a-zA-Z]+)?)?$', rest)
+        if m_val:
+            val_str = m_val.group(1)
+            unit = m_val.group(2)
+            param_part = rest[:m_val.start()].strip()
+            clean_name, method = self._clean_param_name(param_part)
+            if clean_name and len(clean_name) >= 2 and not clean_name.isdigit():
                 try:
                     val_float = float(val_str)
-                    return name_clean, val_float, unit, None
+                    return clean_name, val_float, unit, ref_range
                 except ValueError:
                     pass
+
+        # 6. Check if ending with qualitative value e.g. 'Positive', 'Negative', 'Nil', 'Absent'
+        words = rest.split()
+        if words and words[-1].upper() in self.QUALITATIVE_WORDS:
+            val_str = words[-1]
+            param_part = ' '.join(words[:-1])
+            clean_name, method = self._clean_param_name(param_part)
+            if clean_name and len(clean_name) >= 2 and not clean_name.isdigit():
+                return clean_name, val_str, None, ref_range
 
         return None
 

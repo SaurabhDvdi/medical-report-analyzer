@@ -84,10 +84,15 @@ def process_report(report_id: int, file_path: str):
             report.ocr_status = "processing"
             db.commit()
 
-            if is_scanned and file_path.lower().endswith('.pdf'):
-                # Progressive OCR: process remaining pages only after page 1 passed
-                rem_lines = ocr_service.extract_remaining_pages_text(actual_file_path, start_page=1)
-                lines = p1_lines + rem_lines
+            if file_path.lower().endswith('.pdf'):
+                if is_scanned:
+                    # Progressive OCR: process remaining pages only after page 1 passed
+                    rem_lines = ocr_service.extract_remaining_pages_text(actual_file_path, start_page=1)
+                    lines = p1_lines + rem_lines
+                else:
+                    # Digital PDF: extract all pages via direct text
+                    all_lines = ocr_service.extract_direct_text(actual_file_path)
+                    lines = all_lines if len(all_lines) >= len(p1_lines) else p1_lines
             else:
                 lines = p1_lines
         else:
@@ -172,12 +177,18 @@ def process_report(report_id: int, file_path: str):
             'high', 'low', 'desirable', 'normal', 'optimal'
         }
 
+        def _get_dedup_val(v):
+            try:
+                return round(float(v), 4)
+            except (ValueError, TypeError):
+                return str(v).strip().upper() if v is not None else ""
+
         saved_count = 0
         existing_lvs = db.query(LabValue).filter(LabValue.report_id == report_id).all()
         seen_keys = {
-            (lv.report_id, str(lv.parameter_name).strip().upper(), float(lv.value))
+            (lv.report_id, str(lv.parameter_name).strip().upper(), _get_dedup_val(lv.value if lv.value is not None else lv.qualitative_value))
             for lv in existing_lvs
-            if lv.value is not None and lv.parameter_name
+            if (lv.value is not None or lv.qualitative_value) and lv.parameter_name
         }
         for panel in lab_value_list:
             if not isinstance(panel, dict):
@@ -198,8 +209,8 @@ def process_report(report_id: int, file_path: str):
                 if len(param_name) > 60:
                     continue
 
-                # Deduplication key
-                dedup_key = (report_id, str(param_name).strip().upper(), float(value))
+                # Deduplication key supporting numeric or qualitative
+                dedup_key = (report_id, str(param_name).strip().upper(), _get_dedup_val(value))
                 if dedup_key in seen_keys:
                     continue
                 seen_keys.add(dedup_key)
@@ -207,10 +218,18 @@ def process_report(report_id: int, file_path: str):
                 status      = item.get('status', 'Unknown')
                 is_abnormal = status.lower() in ('high', 'low', 'abnormal', 'critical')
 
+                num_val = None
+                qual_val = None
+                try:
+                    num_val = float(value)
+                except (ValueError, TypeError):
+                    qual_val = str(value).strip()
+
                 lv = LabValue(
                     report_id       = report_id,
                     parameter_name  = str(param_name).strip(),
-                    value           = value,
+                    value           = num_val,
+                    qualitative_value = qual_val,
                     unit            = str(unit).strip() if unit else "",
                     reference_range = str(item.get('ref_range') or '').strip(),
                     is_abnormal     = is_abnormal,
@@ -220,6 +239,18 @@ def process_report(report_id: int, file_path: str):
 
         db.commit()
         db_save_end = time.perf_counter()
+
+        if saved_count == 0 and len(existing_lvs) == 0:
+            logger.warning(
+                f"[EXTRACTION_ZERO_VALUES] Report ID={report_id} | Filename={report.file_name} | "
+                f"Page Count={len(lines)} lines | Extracted Text Length={len(report.extracted_text or '')} | "
+                f"Detected Lab Values=0 | Reason=No validated laboratory measurements extracted from text"
+            )
+        else:
+            logger.info(
+                f"[EXTRACTION_SUCCESS] Report ID={report_id} | Filename={report.file_name} | "
+                f"Extracted and saved {saved_count} new lab values (total {len(existing_lvs) + saved_count})"
+            )
 
         # ----------------------------------------------------
         # 3. NON-BLOCKING AI SUMMARY (Phase 7)
@@ -558,16 +589,30 @@ async def get_report(
     def _compute_lv_status(lv):
         if not lv.is_abnormal:
             return "Normal"
-        if lv.value is not None and lv.reference_range:
+        val = lv.value
+        if val is None and lv.qualitative_value:
+            q_upper = lv.qualitative_value.strip().upper()
+            if q_upper in ("POSITIVE", "REACTIVE", "PRESENT"):
+                return "Abnormal"
+            return "Normal"
+        if val is not None and lv.reference_range:
             import re
+            m_ineq = re.search(r"([<>]=?)\s*(\d+\.?\d*)", str(lv.reference_range))
+            if m_ineq:
+                op = m_ineq.group(1)
+                thresh = float(m_ineq.group(2))
+                if "<" in op and val > thresh:
+                    return "High"
+                elif ">" in op and val < thresh:
+                    return "Low"
             m = re.search(r"(\d+\.?\d*)\s*[\-\–\—\:]\s*(\d+\.?\d*)", str(lv.reference_range))
             if m:
                 try:
                     low = float(m.group(1))
                     high = float(m.group(2))
-                    if lv.value < low:
+                    if val < low:
                         return "Low"
-                    elif lv.value > high:
+                    elif val > high:
                         return "High"
                 except ValueError:
                     pass
@@ -585,7 +630,8 @@ async def get_report(
             {
                 "id": lv.id,
                 "parameter_name": lv.parameter_name,
-                "value": lv.value,
+                "value": lv.value if lv.value is not None else (lv.qualitative_value or ""),
+                "qualitative_value": lv.qualitative_value,
                 "unit": lv.unit,
                 "reference_range": lv.reference_range,
                 "is_abnormal": lv.is_abnormal,
@@ -711,9 +757,10 @@ async def export_csv(
     
     for lv in lab_values:
         report_date = lv.report.report_date if lv.report.report_date else lv.report.upload_date
+        val_display = lv.value if lv.value is not None else (lv.qualitative_value or "")
         writer.writerow([
             lv.parameter_name,
-            lv.value,
+            val_display,
             lv.unit,
             lv.reference_range,
             lv.is_abnormal,

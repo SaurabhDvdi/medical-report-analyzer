@@ -125,9 +125,10 @@ class LabValue(Base):
     id = Column(Integer, primary_key=True, index=True)
     report_id = Column(Integer, ForeignKey("reports.id"), index=True)
     parameter_name = Column(String(255), index=True)
-    value = Column(Float)
-    unit = Column(String(100))
-    reference_range = Column(String(255))
+    value = Column(Float, nullable=True)
+    qualitative_value = Column(String(255), nullable=True)
+    unit = Column(String(100), nullable=True)
+    reference_range = Column(String(255), nullable=True)
     is_abnormal = Column(Boolean, default=False)
     
     report = relationship("Report", back_populates="lab_values")
