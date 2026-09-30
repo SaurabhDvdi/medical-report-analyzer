@@ -45,8 +45,9 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 # Copy application source code
 COPY . .
 
-# Ensure storage directories exist with appropriate permissions
-RUN mkdir -p uploads charts logs .cache/torch
+# Ensure storage directories exist with appropriate permissions and entrypoint is executable
+RUN mkdir -p uploads charts logs .cache/torch && \
+    chmod +x docker-entrypoint.sh
 
 # Create non-root system user for security
 RUN useradd -m -u 1000 appuser && \
@@ -60,5 +61,7 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8000/health/ready || exit 1
 
+ENTRYPOINT ["./docker-entrypoint.sh"]
+
 # Production startup using Gunicorn with Uvicorn workers
-CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "main:app", "--bind", "0.0.0.0:8000", "--timeout", "300"]

@@ -54,14 +54,23 @@ def start_worker():
             time.sleep(retry_delay)
             retry_delay = min(retry_delay * 1.5, 30.0)
 
-    if not running:
-        logger.info("Worker stopped before connecting.")
-        return
+    env = os.getenv("ENVIRONMENT", "development").lower()
+    if env in ("production", "staging", "docker") and engine.dialect.name != "mysql":
+        logger.critical(f"FATAL: Worker must connect to MySQL in {env} mode, but dialect is '{engine.dialect.name}'")
+        raise RuntimeError(f"Worker cannot start with dialect '{engine.dialect.name}' in {env} mode")
+    logger.info(f"Worker verified database connection using dialect: {engine.dialect.name}")
 
     logger.info(f"Worker listening for jobs on queue: '{REPORT_QUEUE_NAME}'")
 
     while running:
         try:
+            # Update heartbeat timestamp for healthcheck monitoring
+            try:
+                with open("/tmp/worker_heartbeat", "w") as hf:
+                    hf.write(str(time.time()))
+            except Exception:
+                pass
+
             # Blocking pop with 2s timeout to allow clean shutdown check
             result = client.brpop(REPORT_QUEUE_NAME, timeout=2)
             if result is None:

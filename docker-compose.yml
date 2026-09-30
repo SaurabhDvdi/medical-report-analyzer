@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ── 1. MySQL Relational Database ─────────────────────────────────────────────
   mysql:
@@ -12,14 +10,15 @@ services:
       MYSQL_USER: ${DB_USER:-medical_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-medical_secure_password_123!}
     ports:
-      - "3306:3306"
+      # Exposed on localhost interface to preserve host developer tooling workflow
+      - "127.0.0.1:3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-medical_user}", "-p${DB_PASSWORD:-medical_secure_password_123!}"]
-      interval: 10s
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD > /dev/null 2>&1 && mysql -u $$MYSQL_USER -p$$MYSQL_PASSWORD -e 'SELECT 1;' > /dev/null 2>&1"]
+      interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
       start_period: 20s
     networks:
       - app-network
@@ -31,7 +30,8 @@ services:
     restart: unless-stopped
     command: ["redis-server", "--appendonly", "yes"]
     ports:
-      - "6379:6379"
+      # Exposed on localhost interface for development tools
+      - "127.0.0.1:6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -39,6 +39,7 @@ services:
       interval: 5s
       timeout: 3s
       retries: 5
+      start_period: 5s
     networks:
       - app-network
 
@@ -50,10 +51,35 @@ services:
     environment:
       - OLLAMA_NUM_PARALLEL=2
       - OLLAMA_MAX_LOADED_MODELS=2
-    ports:
-      - "11434:11434"
+    # Internal to Docker network to prevent conflict with host-native Ollama daemon
+    expose:
+      - "11434"
     volumes:
       - ollama_data:/root/.ollama
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - app-network
+
+  # ── 3b. Ollama Automated Idempotent Model Initialization ────────────────────
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: medical_ollama_init
+    environment:
+      - OLLAMA_HOST=ollama:11434
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-qwen2.5:1.5b}
+      - OLLAMA_FALLBACK_MODEL=${OLLAMA_FALLBACK_MODEL:-qwen2.5:3b}
+    volumes:
+      - ./scripts/init-ollama.sh:/init-ollama.sh:ro
+      - ollama_data:/root/.ollama
+    entrypoint: ["/bin/sh", "/init-ollama.sh"]
+    depends_on:
+      ollama:
+        condition: service_healthy
     networks:
       - app-network
 
@@ -65,10 +91,11 @@ services:
     container_name: medical_backend
     restart: unless-stopped
     environment:
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENVIRONMENT: production
+      ALLOW_SQLITE_FALLBACK: "false"
       SECRET_KEY: ${SECRET_KEY:-change-this-in-production-to-a-secure-random-256bit-string}
       DATABASE_URL: mysql+pymysql://${DB_USER:-medical_user}:${DB_PASSWORD:-medical_secure_password_123!}@mysql:3306/${DB_NAME:-medical_report_analysis}
-      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:80
+      CORS_ORIGINS: http://localhost:5173,http://localhost:3000,http://localhost:80,http://127.0.0.1:5173,http://127.0.0.1:80
       REDIS_URL: redis://redis:6379/0
       ASYNC_PROCESSING_ENABLED: ${ASYNC_PROCESSING_ENABLED:-true}
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
@@ -92,13 +119,15 @@ services:
       redis:
         condition: service_healthy
       ollama:
-        condition: service_started
+        condition: service_healthy
+      ollama-init:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health/ready"]
-      interval: 15s
+      interval: 10s
       timeout: 5s
-      retries: 4
-      start_period: 15s
+      retries: 5
+      start_period: 20s
     networks:
       - app-network
 
@@ -110,7 +139,9 @@ services:
     container_name: medical_worker
     restart: unless-stopped
     environment:
-      ENVIRONMENT: ${ENVIRONMENT:-development}
+      ENVIRONMENT: production
+      ALLOW_SQLITE_FALLBACK: "false"
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production-to-a-secure-random-256bit-string}
       DATABASE_URL: mysql+pymysql://${DB_USER:-medical_user}:${DB_PASSWORD:-medical_secure_password_123!}@mysql:3306/${DB_NAME:-medical_report_analysis}
       REDIS_URL: redis://redis:6379/0
       STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
@@ -131,6 +162,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      ollama:
+        condition: service_healthy
       backend:
         condition: service_healthy
     networks:
@@ -149,10 +182,11 @@ services:
       backend:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:80/"]
-      interval: 20s
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:80/"]
+      interval: 15s
       timeout: 5s
       retries: 3
+      start_period: 10s
     networks:
       - app-network
 

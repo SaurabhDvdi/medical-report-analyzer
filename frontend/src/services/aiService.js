@@ -18,7 +18,9 @@ export const compareReports = (oldReportId, newReportId) =>
  */
 export const streamAIChat = async (payload, { onMetadata, onToken, onComplete, onError }) => {
   const token = sessionStorage.getItem('token')
-  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  const baseUrl = import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : (import.meta.env.PROD ? '' : 'http://localhost:8000')
 
   try {
     const response = await fetch(`${baseUrl}/api/ai/chat/stream`, {

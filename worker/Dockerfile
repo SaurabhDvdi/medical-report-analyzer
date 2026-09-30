@@ -32,6 +32,8 @@ RUN mkdir -p uploads charts logs .cache/torch
 RUN useradd -m -u 1000 appuser && \
     chown -R appuser:appuser /app
 
-USER appuser
+# Health check verifying worker process is actively updating its heartbeat
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD python -c "import time, sys; sys.exit(0 if (time.time() - float(open('/tmp/worker_heartbeat').read().strip())) < 60 else 1)" || exit 1
 
 CMD ["python", "worker.py"]

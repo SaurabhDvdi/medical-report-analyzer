@@ -39,10 +39,14 @@ logger = get_logger(__name__)
 
 # Initialize database tables
 try:
-    Base.metadata.create_all(bind=engine)
+    Base.metadata.create_all(bind=engine, checkfirst=True)
     logger.info("Database tables initialized successfully.")
 except Exception as e:
-    logger.warning(f"Database table initialization notice: {e}")
+    err_msg = str(e).lower()
+    if "already exists" in err_msg or "1050" in err_msg:
+        logger.info("Database tables already initialized (concurrent process or prior migration).")
+    else:
+        logger.warning(f"Database table initialization notice: {e}")
 
 # Startup Validation for AI Configuration & Readiness (Sections 23 & 24)
 try:
@@ -178,13 +182,26 @@ async def liveness_check():
 @app.get("/health/ready", tags=["system"])
 async def readiness_probe():
     """
-    Kubernetes readiness probe: Determines if backend can accept traffic.
+    Kubernetes/Docker readiness probe: Determines if backend can accept traffic.
     Verifies database connectivity without invoking LLM or OCR.
+    In production mode, verifies that the active database is MySQL and not SQLite.
     """
     db = SessionLocal()
     try:
         db.execute(text("SELECT 1"))
-        return {"status": "ready", "database": "connected"}
+        dialect_name = engine.dialect.name
+        if ENVIRONMENT in ("production", "staging", "docker") and dialect_name != "mysql":
+            logger.error(f"Readiness probe failed: Production requires MySQL, but active dialect is '{dialect_name}'")
+            return JSONResponse(
+                status_code=503,
+                content={
+                    "status": "not_ready",
+                    "database": "invalid_dialect",
+                    "dialect": dialect_name,
+                    "error": f"Production requires MySQL, but active dialect is '{dialect_name}'"
+                }
+            )
+        return {"status": "ready", "database": "connected", "dialect": dialect_name}
     except Exception as e:
         logger.error(f"Readiness check failed: {e}")
         return JSONResponse(
